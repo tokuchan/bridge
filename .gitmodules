@@ -1,0 +1,3 @@
+[submodule ".run"]
+	path = .run
+	url = https://github.com/tokuchan/run.sh.git

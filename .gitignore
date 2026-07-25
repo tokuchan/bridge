@@ -39,10 +39,11 @@
 *.out
 *.app
 
-# Build directories
-build/
-Build/
-build-*/
+# Build directories (root-anchored — commands/build/ is a run.sh command, not
+# a CMake build output, and must stay tracked)
+/build/
+/Build/
+/build-*/
 
 # CMake generated files
 CMakeFiles/
@@ -67,3 +68,4 @@ vcpkg_installed/
 # test output & cache
 Testing/
 .cache/
+result
