@@ -39,3 +39,7 @@ _Avoid_: feature test, version check
 **Named Detector**:
 A specific, individually-generated `(entity, comparator, number)` check — the sparse, curated cells of the entity × comparator × version table that code actually branches on. Generated via `BRIDGE_RIVETS_DEFINE_DETECTOR` as a zero-arg constexpr alias (`bridge::rivets::gcc::gt_12()`) calling the matching Detector comparator — never a named `#if`-usable macro, since macro expansion cannot emit a `#define`; a named macro form is always one hand-written line. See [ADR-0006](docs/adr/0006-detector-naming-calculus.md).
 _Avoid_: feature macro, version macro
+
+**Feature Test**:
+A 1:1 wrap of an SD-6 feature-test macro (e.g. `__cpp_lib_optional`), in both an `#if`-usable macro form and a constexpr form, hand-written per feature (never generated, same reason as a Detector's Layer 1). Unlike a Detector, has no comparator calculus — it's already a single curated fact the compiler/stdlib publishes, not a range Rivets computes. The primary, preferred signal for "does this specific ecosystem support this specific library feature"; Detectors serve as a curated override only for known-bad cases. See [ADR-0007](docs/adr/0007-feature-test-wrapping.md).
+_Avoid_: feature macro, capability check

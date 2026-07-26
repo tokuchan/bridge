@@ -44,3 +44,7 @@ Versions are CalVer: `YY.MM.MICRO` (see docs/adr/0005-calver-versioning.md).
 - Doxygen `MACRO_EXPANSION`/`EXPAND_AS_DEFINED` for the detector generator
   macros, so Named Detectors (which only exist via macro expansion) are
   visible to the documentation-coverage gate instead of silently invisible.
+- `rivets/features.hpp`: Feature Test wrapping (`__cpp_lib_optional`), a new
+  Rivets concept distinct from Detector — a 1:1 wrap of an SD-6 feature-test
+  macro rather than a computed version range. See
+  `docs/adr/0007-feature-test-wrapping.md`.
