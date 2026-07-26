@@ -9,11 +9,11 @@ Macro library for detecting language standards, language features, compiler vers
 _Avoid_: Config, feature test, compat macros
 
 **Truss**:
-Header-only library providing polyfilled implementations of modern C++ features for older standards, compilers, or STLs that lack them, as free functions (e.g. `bridge::truss::and_then(opt, f)` operating on a plain `std::optional<T>`) — never a wrapper type with member methods; that's Deck's job. The load-bearing structural layer.
+Header-only library providing polyfilled implementations of modern C++ features for older standards, compilers, or STLs that lack them. Two shapes, depending on whether the target STL type already exists on older standards: free functions when it does (e.g. `bridge::truss::and_then(opt, f)` operating on a plain `std::optional<T>`, never a wrapper type with member methods — that's Deck's job), or a complete, from-scratch class when it doesn't (e.g. `bridge::truss::expected<T,E>`, since `std::expected` doesn't exist before C++23 at all). A Truss-owned class never itself passes through to the real `std::` type, even once available — that selection is Deck's job alone. See [ADR-0010](docs/adr/0010-expected-truss-owns-the-class.md). The load-bearing structural layer.
 _Avoid_: Polyfills, shims, backports
 
 **Deck**:
-Header-only library of higher-level utilities, containers, and algorithms built on top of Truss. Owns the STL-shaped wrapper types consumers actually declare variables as (e.g. `bridge::optional<T>`) — real member methods, matching the target STL interface exactly, selecting per [ADR-0008](docs/adr/0008-best-effort-head-standard.md) whether that's a passthrough alias to the real `std::` type or a wrapper built on Truss's free functions. Not itself a polyfill library — it composes what Truss provides.
+Header-only library of higher-level utilities, containers, and algorithms built on top of Truss. Owns the STL-shaped wrapper types consumers actually declare variables as (e.g. `bridge::optional<T>`) — real member methods, matching the target STL interface exactly, selecting per [ADR-0008](docs/adr/0008-best-effort-head-standard.md) whether that's a passthrough alias to the real `std::` type or a wrapper built on Truss's free functions. When Truss owns a full class instead of free functions, that same selection collapses to a plain type alias — Truss's class already has the target shape, so there's nothing left for Deck to wrap (see [ADR-0010](docs/adr/0010-expected-truss-owns-the-class.md)). Not itself a polyfill library — it composes what Truss provides.
 _Avoid_: Utils, extras
 
 **Exported namespace**:

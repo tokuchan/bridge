@@ -7,6 +7,17 @@ Versions are CalVer: `YY.MM.MICRO` (see docs/adr/0005-calver-versioning.md).
 ## [Unreleased]
 
 ### Added
+- Truss's `expected<T,E>` polyfill begins: `bridge::truss::unexpected<E>`,
+  `bridge::truss::bad_expected_access<E>`, and the `unexpect_t`/`unexpect`
+  tag, in a new `include/truss/cpp17/expected.hpp`. Unlike `optional`,
+  `std::expected` doesn't exist before C++23 at all, so Truss owns a
+  complete from-scratch class here rather than free functions on an
+  existing STL type — a second refinement of the Truss/Deck boundary.
+  `bridge::truss::expected<T,E>` (landing in follow-up commits) will be
+  unconditionally this polyfill regardless of standard/toolchain; Deck
+  alone selects between it and the real `std::expected`. See
+  `docs/adr/0010-expected-truss-owns-the-class.md`. `CONTEXT.md`'s Truss
+  and Deck entries updated accordingly.
 - `rivets/features.hpp`: `__cpp_lib_expected` Feature Test
   (`bridge::rivets::features::lib_expected`), first step toward full
   `std::expected` support. Unlike `__cpp_lib_optional`, this one
