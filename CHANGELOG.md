@@ -7,6 +7,18 @@ Versions are CalVer: `YY.MM.MICRO` (see docs/adr/0005-calver-versioning.md).
 ## [Unreleased]
 
 ### Added
+- Truss's `expected<void,E>` partial specialization: mirrors the
+  primary template member-for-member (constructors, assignment,
+  `error()`/`error_or`, `and_then`/`or_else`/`transform`/
+  `transform_error`, comparisons, `emplace`, `swap`), minus everything
+  that carries a value (`value_or`, and `operator->`/constructing from
+  a raw value, which don't apply to `void`). `transform` supports `F`
+  returning either `void` (chaining to another `expected<void,E>`) or a
+  non-`void` type (producing `expected<U,E>`), using `if constexpr` to
+  pick between them. This completes Truss's `expected` polyfill --
+  every piece from docs/adr/0010-expected-truss-owns-the-class.md's
+  scope is now implemented.
+
 - Truss's `expected<T,E>` comparison operators: against another
   `expected<T2,E2>`, a raw value (both directions), and `unexpected<G>`
   (both directions). Also fixes a gap in the prior `unexpected<E>`
@@ -58,6 +70,23 @@ Versions are CalVer: `YY.MM.MICRO` (see docs/adr/0005-calver-versioning.md).
   doesn't exist at all before C++23, confirmed by direct compiler
   probe (GCC/Clang both fail to find `<expected>` under
   `-std=c++17`/`-std=c++20`) rather than assumed.
+
+### Fixed
+- Doxygen's handling of class-template partial specializations
+  conflates member lookup with the primary template: documenting
+  `expected<void,E>`'s members caused Doxygen to resolve the primary
+  template's `value_or` with `T` substituted as `void` and flag its
+  `@return` doc as invalid, confirmed by isolating the exact cause
+  (removing the specialization made the unrelated-looking error
+  disappear) rather than assumed. Worked around with `\cond`/`\endcond`
+  around the specialization's body, same posture as the earlier
+  `bad_expected_access` recursive-class-relation false positive.
+- `unexpected<E>` only got `operator==` in the commit that introduced
+  it; `std::unexpected` relies on C++20's automatic `!=` rewriting from
+  `==`, unavailable under this header's C++17 floor, so `!=` genuinely
+  failed to compile despite `==` working. Added `operator!=` explicitly
+  for both `unexpected<E>` and `expected<T,E>`, matching passthrough
+  usability.
 
 ## [26.7.0] - 2026-07-26
 

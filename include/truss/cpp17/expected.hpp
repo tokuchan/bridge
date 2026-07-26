@@ -502,6 +502,188 @@ struct move_assign_layer<T, E, false> : copy_assign_layer<T, E> {
     move_assign_layer& operator=(move_assign_layer&&) = delete;
 };
 
+/// @brief Storage for the `expected<void,E>` partial specialization:
+///        same tri-state discriminant as @ref storage, but there's
+///        never a `T` alternative to hold -- `state::value` carries no
+///        payload at all.
+template <class E>
+struct void_storage {
+    struct empty_tag {};
+    union expected_union {
+        expected_union() noexcept {}
+        ~expected_union() {}
+        E err;
+    };
+
+    state state_;
+    expected_union storage_;
+
+    explicit void_storage(empty_tag) noexcept : state_(state::empty) {}
+    explicit void_storage(std::in_place_t) noexcept : state_(state::value) {}
+    template <class... Args>
+    explicit void_storage(unexpect_t, Args&&... args) : state_(state::empty) {
+        ::new (std::addressof(storage_.err)) E(std::forward<Args>(args)...);
+        state_ = state::error;
+    }
+
+    void_storage() = delete;
+    void_storage(const void_storage&) = delete;
+    void_storage(void_storage&&) = delete;
+    void_storage& operator=(const void_storage&) = delete;
+    void_storage& operator=(void_storage&&) = delete;
+
+    void destroy() noexcept {
+        if (state_ == state::error) {
+            storage_.err.~E();
+        }
+        state_ = state::empty;
+    }
+    ~void_storage() { destroy(); }
+
+    void copy_construct_from(const void_storage& other) {
+        if (other.state_ == state::value) {
+            state_ = state::value;
+        } else if (other.state_ == state::error) {
+            ::new (std::addressof(storage_.err)) E(other.storage_.err);
+            state_ = state::error;
+        }
+    }
+    void move_construct_from(void_storage&& other) {
+        if (other.state_ == state::value) {
+            state_ = state::value;
+        } else if (other.state_ == state::error) {
+            ::new (std::addressof(storage_.err)) E(std::move(other.storage_.err));
+            state_ = state::error;
+        }
+    }
+    // Same decision #4 destroy-then-construct simplification as storage.
+    void copy_assign_from(const void_storage& other) {
+        if (state_ == other.state_) {
+            if (state_ == state::error) {
+                storage_.err = other.storage_.err;
+            }
+        } else {
+            destroy();
+            copy_construct_from(other);
+        }
+    }
+    void move_assign_from(void_storage&& other) {
+        if (state_ == other.state_) {
+            if (state_ == state::error) {
+                storage_.err = std::move(other.storage_.err);
+            }
+        } else {
+            destroy();
+            move_construct_from(std::move(other));
+        }
+    }
+};
+
+/// @brief Layer customizing the copy constructor for `expected<void,E>`:
+///        deleted unless `is_copy_constructible_v<E>` (no `T` condition
+///        -- there's no value alternative to copy).
+template <class E, bool = std::is_copy_constructible_v<E>>
+struct void_copy_ctor_layer : void_storage<E> {
+    using void_storage<E>::void_storage;
+    void_copy_ctor_layer() = delete;
+    void_copy_ctor_layer(const void_copy_ctor_layer& other) : void_storage<E>(typename void_storage<E>::empty_tag{}) {
+        this->copy_construct_from(other);
+    }
+    void_copy_ctor_layer(void_copy_ctor_layer&&) = default;
+    void_copy_ctor_layer& operator=(const void_copy_ctor_layer&) = default;
+    void_copy_ctor_layer& operator=(void_copy_ctor_layer&&) = default;
+};
+/// @copydoc void_copy_ctor_layer
+template <class E>
+struct void_copy_ctor_layer<E, false> : void_storage<E> {
+    using void_storage<E>::void_storage;
+    void_copy_ctor_layer() = delete;
+    void_copy_ctor_layer(const void_copy_ctor_layer&) = delete;
+    void_copy_ctor_layer(void_copy_ctor_layer&&) = default;
+    void_copy_ctor_layer& operator=(const void_copy_ctor_layer&) = default;
+    void_copy_ctor_layer& operator=(void_copy_ctor_layer&&) = default;
+};
+
+/// @brief Layer customizing the move constructor for `expected<void,E>`.
+template <class E, bool = std::is_move_constructible_v<E>>
+struct void_move_ctor_layer : void_copy_ctor_layer<E> {
+    using void_copy_ctor_layer<E>::void_copy_ctor_layer;
+    void_move_ctor_layer() = delete;
+    void_move_ctor_layer(const void_move_ctor_layer&) = default;
+    void_move_ctor_layer(void_move_ctor_layer&& other) noexcept(std::is_nothrow_move_constructible_v<E>)
+        : void_copy_ctor_layer<E>(typename void_storage<E>::empty_tag{}) {
+        this->move_construct_from(std::move(other));
+    }
+    void_move_ctor_layer& operator=(const void_move_ctor_layer&) = default;
+    void_move_ctor_layer& operator=(void_move_ctor_layer&&) = default;
+};
+/// @copydoc void_move_ctor_layer
+template <class E>
+struct void_move_ctor_layer<E, false> : void_copy_ctor_layer<E> {
+    using void_copy_ctor_layer<E>::void_copy_ctor_layer;
+    void_move_ctor_layer() = delete;
+    void_move_ctor_layer(const void_move_ctor_layer&) = default;
+    void_move_ctor_layer(void_move_ctor_layer&&) = delete;
+    void_move_ctor_layer& operator=(const void_move_ctor_layer&) = default;
+    void_move_ctor_layer& operator=(void_move_ctor_layer&&) = default;
+};
+
+/// @brief Layer customizing the copy-assignment operator for
+///        `expected<void,E>`: deleted unless `E` is copy-constructible,
+///        copy-assignable, and nothrow-move-constructible (no `T`
+///        alternative means no either-side-nothrow OR condition -- `E`
+///        alone must be nothrow-move-constructible).
+template <class E, bool = std::is_copy_constructible_v<E> && std::is_copy_assignable_v<E> &&
+                           std::is_nothrow_move_constructible_v<E>>
+struct void_copy_assign_layer : void_move_ctor_layer<E> {
+    using void_move_ctor_layer<E>::void_move_ctor_layer;
+    void_copy_assign_layer() = delete;
+    void_copy_assign_layer(const void_copy_assign_layer&) = default;
+    void_copy_assign_layer(void_copy_assign_layer&&) = default;
+    void_copy_assign_layer& operator=(const void_copy_assign_layer& other) {
+        this->copy_assign_from(other);
+        return *this;
+    }
+    void_copy_assign_layer& operator=(void_copy_assign_layer&&) = default;
+};
+/// @copydoc void_copy_assign_layer
+template <class E>
+struct void_copy_assign_layer<E, false> : void_move_ctor_layer<E> {
+    using void_move_ctor_layer<E>::void_move_ctor_layer;
+    void_copy_assign_layer() = delete;
+    void_copy_assign_layer(const void_copy_assign_layer&) = default;
+    void_copy_assign_layer(void_copy_assign_layer&&) = default;
+    void_copy_assign_layer& operator=(const void_copy_assign_layer&) = delete;
+    void_copy_assign_layer& operator=(void_copy_assign_layer&&) = default;
+};
+
+/// @brief Layer customizing the move-assignment operator for
+///        `expected<void,E>`.
+template <class E, bool = std::is_move_constructible_v<E> && std::is_move_assignable_v<E> &&
+                           std::is_nothrow_move_constructible_v<E>>
+struct void_move_assign_layer : void_copy_assign_layer<E> {
+    using void_copy_assign_layer<E>::void_copy_assign_layer;
+    void_move_assign_layer() = delete;
+    void_move_assign_layer(const void_move_assign_layer&) = default;
+    void_move_assign_layer(void_move_assign_layer&&) = default;
+    void_move_assign_layer& operator=(const void_move_assign_layer&) = default;
+    void_move_assign_layer& operator=(void_move_assign_layer&& other) noexcept(
+        std::is_nothrow_move_constructible_v<E>&& std::is_nothrow_move_assignable_v<E>) {
+        this->move_assign_from(std::move(other));
+        return *this;
+    }
+};
+/// @copydoc void_move_assign_layer
+template <class E>
+struct void_move_assign_layer<E, false> : void_copy_assign_layer<E> {
+    using void_copy_assign_layer<E>::void_copy_assign_layer;
+    void_move_assign_layer() = delete;
+    void_move_assign_layer(const void_move_assign_layer&) = default;
+    void_move_assign_layer(void_move_assign_layer&&) = default;
+    void_move_assign_layer& operator=(const void_move_assign_layer&) = default;
+    void_move_assign_layer& operator=(void_move_assign_layer&&) = delete;
+};
+
 } // namespace layers
 /// \endcond
 
@@ -1151,6 +1333,412 @@ public:
         }
     }
 };
+
+/// @brief Partial specialization of `expected` for `T = void`: no
+///        value alternative to store, so construction, `operator*`,
+///        `value()`, `value_or` (dropped entirely -- there's no value to
+///        fall back to), and the monadic operations all drop their
+///        value-carrying parameters accordingly. Otherwise mirrors the
+///        primary template's API and fidelity scope member-for-member
+///        (constructors, assignment, `error()`/`error_or`, `and_then`/
+///        `or_else`/`transform`/`transform_error`, comparisons,
+///        `emplace`, `swap`) -- see the primary template's own doc
+///        comments for the contract each corresponding member follows.
+///
+/// Per-member documentation isn't separately generated for this
+/// specialization: Doxygen's handling of class-template partial
+/// specializations conflates member lookup with the primary template
+/// (confirmed by isolating it -- removing this specialization entirely
+/// made an unrelated "found documented return type that does not
+/// return anything" error on the *primary* template's `value_or`
+/// disappear, meaning Doxygen was resolving `T -> void` against the
+/// primary's members while processing this specialization, not a
+/// defect in this code). Excluded from the documentation-coverage gate
+/// below for that reason, same posture as the layered-base
+/// implementation detail earlier in this file.
+/// @tparam E The error type, same as the primary template.
+/// \cond BRIDGE_DETAIL
+template <class E>
+class expected<void, E> : private layers::void_move_assign_layer<E> {
+    using base = layers::void_move_assign_layer<E>;
+
+public:
+    /// @brief The (absent) wrapped value type.
+    using value_type = void;
+    /// @brief The wrapped error type.
+    using error_type = E;
+    /// @brief The `unexpected` specialization matching this `expected`.
+    using unexpected_type = unexpected<E>;
+    /// @brief `expected<U,E>` -- the same error type, a different value
+    ///        type, matching `std::expected::rebind`.
+    template <class U>
+    using rebind = expected<U, error_type>;
+
+    /// @brief Default-constructs the (empty) value. Unlike the primary
+    ///        template, always available -- there's no `T` to require
+    ///        default-constructibility of.
+    constexpr expected() noexcept : base(std::in_place) {}
+
+    /// @brief Marks this as holding a value. Matches the primary
+    ///        template's `expected(std::in_place_t, Args&&...)`, with
+    ///        no `Args` since there's nothing to construct.
+    constexpr explicit expected(std::in_place_t) noexcept : base(std::in_place) {}
+
+    /// @brief Copies whichever alternative `other` holds. Deleted
+    ///        unless `E` is copy-constructible.
+    expected(const expected&) = default;
+    /// @brief Moves whichever alternative `other` holds. Deleted unless
+    ///        `E` is move-constructible.
+    expected(expected&&) = default;
+
+    /// @brief Constructs an error from `u`'s wrapped error.
+    /// @param u The `unexpected` to construct the error from.
+    template <class G = E, class = std::enable_if_t<std::is_constructible_v<E, const G&>>>
+    constexpr explicit expected(const unexpected<G>& u) : base(unexpect_t{}, u.error()) {}
+    /// @brief Constructs an error by moving `u`'s wrapped error.
+    /// @param u The `unexpected` to construct the error from.
+    template <class G = E, class = std::enable_if_t<std::is_constructible_v<E, G&&>>>
+    constexpr explicit expected(unexpected<G>&& u) : base(unexpect_t{}, std::move(u).error()) {}
+
+    /// @brief Constructs an error in place from `args`.
+    /// @param args Forwarded to `E`'s constructor.
+    template <class... Args, class = std::enable_if_t<std::is_constructible_v<E, Args...>>>
+    constexpr explicit expected(unexpect_t, Args&&... args) : base(unexpect_t{}, std::forward<Args>(args)...) {}
+    /// @brief Constructs an error in place from an initializer list plus
+    ///        `args`.
+    /// @param il Forwarded to `E`'s constructor as the first argument.
+    /// @param args Forwarded to `E`'s constructor after `il`.
+    template <class U, class... Args,
+              class = std::enable_if_t<std::is_constructible_v<E, std::initializer_list<U>&, Args...>>>
+    constexpr explicit expected(unexpect_t, std::initializer_list<U> il, Args&&... args)
+        : base(unexpect_t{}, il, std::forward<Args>(args)...) {}
+
+    /// @brief Converting constructor from an `expected<U,G>` where `U`
+    ///        is also (possibly cv-qualified) `void`, and `G` converts
+    ///        to `E`. Same documented simplification as the primary
+    ///        template's converting constructor: omits the standard's
+    ///        extra defensive SFINAE guards.
+    /// @param other The `expected` to convert from.
+    template <class U, class G,
+              class = std::enable_if_t<std::is_void_v<U> && std::is_constructible_v<E, const G&>>>
+    explicit expected(const expected<U, G>& other) : base(typename layers::void_storage<E>::empty_tag{}) {
+        if (other.has_value()) {
+            this->state_ = layers::state::value;
+        } else {
+            ::new (std::addressof(this->storage_.err)) E(other.error());
+            this->state_ = layers::state::error;
+        }
+    }
+    /// @copydoc expected(const expected<U,G>&)
+    template <class U, class G, class = std::enable_if_t<std::is_void_v<U> && std::is_constructible_v<E, G&&>>>
+    explicit expected(expected<U, G>&& other) : base(typename layers::void_storage<E>::empty_tag{}) {
+        if (other.has_value()) {
+            this->state_ = layers::state::value;
+        } else {
+            ::new (std::addressof(this->storage_.err)) E(std::move(other).error());
+            this->state_ = layers::state::error;
+        }
+    }
+
+    /// @brief Copy-assigns whichever alternative `other` holds. Deleted
+    ///        unless `E` is copy-constructible, copy-assignable, and
+    ///        nothrow-move-constructible.
+    /// @return `*this`.
+    expected& operator=(const expected&) = default;
+    /// @brief Move-assigns whichever alternative `other` holds. Deleted
+    ///        unless `E` is move-constructible, move-assignable, and
+    ///        nothrow-move-constructible.
+    /// @return `*this`.
+    expected& operator=(expected&&) = default;
+
+    /// @brief Assigns an error constructed from `u`'s wrapped error,
+    ///        replacing whatever this held before.
+    /// @param u The `unexpected` to assign the error from.
+    /// @return `*this`.
+    template <class G = E,
+              class = std::enable_if_t<std::is_constructible_v<E, const G&> && std::is_assignable_v<E&, const G&>>>
+    constexpr expected& operator=(const unexpected<G>& u) {
+        if (!has_value()) {
+            error() = u.error();
+        } else {
+            this->destroy();
+            ::new (std::addressof(this->storage_.err)) E(u.error());
+            this->state_ = layers::state::error;
+        }
+        return *this;
+    }
+    /// @brief Assigns an error by moving `u`'s wrapped error, replacing
+    ///        whatever this held before.
+    /// @param u The `unexpected` to assign the error from.
+    /// @return `*this`.
+    template <class G = E, class = std::enable_if_t<std::is_constructible_v<E, G&&> && std::is_assignable_v<E&, G&&>>>
+    constexpr expected& operator=(unexpected<G>&& u) {
+        if (!has_value()) {
+            error() = std::move(u).error();
+        } else {
+            this->destroy();
+            ::new (std::addressof(this->storage_.err)) E(std::move(u).error());
+            this->state_ = layers::state::error;
+        }
+        return *this;
+    }
+
+    /// @brief Whether this holds a value (as opposed to an error).
+    /// @return `true` if this holds a value.
+    constexpr bool has_value() const noexcept { return this->state_ == layers::state::value; }
+    /// @copydoc has_value
+    constexpr explicit operator bool() const noexcept { return has_value(); }
+
+    /// @brief No-op accessor, present only for generic-code uniformity
+    ///        with the primary template's `operator*`. Precondition:
+    ///        `has_value()`; violating it is undefined behavior,
+    ///        matching `std::expected`.
+    constexpr void operator*() const noexcept {}
+
+    /// @brief Checked access, present only for generic-code uniformity.
+    /// @throws bad_expected_access<E> if `!has_value()`, constructed
+    ///         from a copy of the contained error.
+    constexpr void value() const& {
+        if (!has_value()) throw bad_expected_access<E>(error());
+    }
+    /// @copydoc value()const&
+    constexpr void value() && {
+        if (!has_value()) throw bad_expected_access<E>(std::move(error()));
+    }
+
+    /// @brief Lvalue access to the contained error. Precondition:
+    ///        `!has_value()`; violating it is undefined behavior,
+    ///        matching `std::expected`.
+    /// @return A reference to the contained error.
+    constexpr E& error() & { return this->storage_.err; }
+    /// @copydoc error()&
+    constexpr const E& error() const& { return this->storage_.err; }
+    /// @copydoc error()&
+    constexpr E&& error() && { return std::move(this->storage_.err); }
+    /// @copydoc error()&
+    constexpr const E&& error() const&& { return std::move(this->storage_.err); }
+
+    /// @brief The contained error, or `g` converted to `E` if this
+    ///        holds a value. See the primary template's `error_or` for
+    ///        the same `__cpp_lib_expected`-verified rationale.
+    /// @param g The fallback error.
+    /// @return A copy of the contained error, or `g` converted to `E`.
+    template <class G>
+    constexpr E error_or(G&& g) const& {
+        return has_value() ? static_cast<E>(std::forward<G>(g)) : error();
+    }
+    /// @copydoc error_or(G&&)const&
+    template <class G>
+    constexpr E error_or(G&& g) && {
+        return has_value() ? static_cast<E>(std::forward<G>(g)) : std::move(error());
+    }
+
+    /// @brief If this holds a value, invoke `f` with no arguments and
+    ///        return the result (which must itself be a specialization
+    ///        of `expected` with a matching `error_type`); otherwise
+    ///        return an error copy of that same type.
+    /// @param f A callable, invoked with no arguments, returning a
+    ///          specialization of `expected`.
+    /// @return `f`'s result, or an error copy of its `expected` type.
+    template <class F>
+    constexpr auto and_then(F&& f) const& {
+        using U = std::remove_cv_t<std::invoke_result_t<F>>;
+        static_assert(is_expected_v<U>, "F must return a specialization of expected");
+        static_assert(std::is_same_v<typename U::error_type, E>, "F's expected<..., E> must use this expected's E");
+        if (has_value()) {
+            return std::invoke(std::forward<F>(f));
+        }
+        return U(unexpect_t{}, error());
+    }
+    /// @copydoc and_then(F&&)const&
+    template <class F>
+    constexpr auto and_then(F&& f) && {
+        using U = std::remove_cv_t<std::invoke_result_t<F>>;
+        static_assert(is_expected_v<U>, "F must return a specialization of expected");
+        static_assert(std::is_same_v<typename U::error_type, E>, "F's expected<..., E> must use this expected's E");
+        if (has_value()) {
+            return std::invoke(std::forward<F>(f));
+        }
+        return U(unexpect_t{}, std::move(error()));
+    }
+
+    /// @brief If this holds an error, invoke `f` with it and return the
+    ///        result (which must itself be a specialization of
+    ///        `expected` with a `void` value type); otherwise return a
+    ///        value copy of that same type.
+    /// @param f A callable returning a specialization of `expected`.
+    /// @return `f`'s result, or a value copy of its `expected` type.
+    template <class F>
+    constexpr auto or_else(F&& f) const& {
+        using U = std::remove_cv_t<std::invoke_result_t<F, const E&>>;
+        static_assert(is_expected_v<U>, "F must return a specialization of expected");
+        static_assert(std::is_void_v<typename U::value_type>, "F's expected<void, ...> must have a void value_type");
+        if (has_value()) {
+            return U(std::in_place);
+        }
+        return std::invoke(std::forward<F>(f), error());
+    }
+    /// @copydoc or_else(F&&)const&
+    template <class F>
+    constexpr auto or_else(F&& f) && {
+        using U = std::remove_cv_t<std::invoke_result_t<F, E&&>>;
+        static_assert(is_expected_v<U>, "F must return a specialization of expected");
+        static_assert(std::is_void_v<typename U::value_type>, "F's expected<void, ...> must have a void value_type");
+        if (has_value()) {
+            return U(std::in_place);
+        }
+        return std::invoke(std::forward<F>(f), std::move(error()));
+    }
+
+    /// @brief If this holds a value, invoke `f` with no arguments and
+    ///        return `expected<U,E>` containing the result (or
+    ///        `expected<void,E>` if `f` returns `void`); otherwise
+    ///        return an error copy.
+    /// @param f A callable, invoked with no arguments.
+    /// @return `f`'s result wrapped in `expected<U,E>`, or an error copy.
+    template <class F>
+    constexpr auto transform(F&& f) const& {
+        using U = std::remove_cv_t<std::invoke_result_t<F>>;
+        if constexpr (std::is_void_v<U>) {
+            if (has_value()) {
+                std::invoke(std::forward<F>(f));
+                return expected<void, E>(std::in_place);
+            }
+            return expected<void, E>(unexpect_t{}, error());
+        } else {
+            if (has_value()) {
+                return expected<U, E>(std::in_place, std::invoke(std::forward<F>(f)));
+            }
+            return expected<U, E>(unexpect_t{}, error());
+        }
+    }
+    /// @copydoc transform(F&&)const&
+    template <class F>
+    constexpr auto transform(F&& f) && {
+        using U = std::remove_cv_t<std::invoke_result_t<F>>;
+        if constexpr (std::is_void_v<U>) {
+            if (has_value()) {
+                std::invoke(std::forward<F>(f));
+                return expected<void, E>(std::in_place);
+            }
+            return expected<void, E>(unexpect_t{}, std::move(error()));
+        } else {
+            if (has_value()) {
+                return expected<U, E>(std::in_place, std::invoke(std::forward<F>(f)));
+            }
+            return expected<U, E>(unexpect_t{}, std::move(error()));
+        }
+    }
+
+    /// @brief If this holds an error, invoke `f` with it and return
+    ///        `expected<void,G>` containing the result wrapped in
+    ///        `unexpected`; otherwise return a value copy of
+    ///        `expected<void,G>`.
+    /// @param f A callable returning a non-`void` value.
+    /// @return `f`'s result wrapped in `expected<void,G>`'s error, or a
+    ///         value copy.
+    template <class F>
+    constexpr auto transform_error(F&& f) const& {
+        using G = std::remove_cv_t<std::invoke_result_t<F, const E&>>;
+        static_assert(!std::is_same_v<G, void>, "F must not return void");
+        if (has_value()) {
+            return expected<void, G>(std::in_place);
+        }
+        return expected<void, G>(unexpect_t{}, std::invoke(std::forward<F>(f), error()));
+    }
+    /// @copydoc transform_error(F&&)const&
+    template <class F>
+    constexpr auto transform_error(F&& f) && {
+        using G = std::remove_cv_t<std::invoke_result_t<F, E&&>>;
+        static_assert(!std::is_same_v<G, void>, "F must not return void");
+        if (has_value()) {
+            return expected<void, G>(std::in_place);
+        }
+        return expected<void, G>(unexpect_t{}, std::invoke(std::forward<F>(f), std::move(error())));
+    }
+
+    /// @brief Destroys whatever this held and marks this as holding a
+    ///        (empty) value.
+    constexpr void emplace() noexcept {
+        this->destroy();
+        this->state_ = layers::state::value;
+    }
+
+    /// @brief Swaps the contents of `*this` and `other`, including
+    ///        across differing alternatives.
+    /// @param other The `expected` to swap with.
+    void swap(expected& other) noexcept(std::is_nothrow_move_constructible_v<E>&& std::is_nothrow_swappable_v<E>) {
+        using std::swap;
+        if (has_value() && other.has_value()) {
+            // Nothing to exchange -- a value alternative carries no data.
+        } else if (!has_value() && !other.has_value()) {
+            swap(error(), other.error());
+        } else {
+            expected& with_value = has_value() ? *this : other;
+            expected& with_error = has_value() ? other : *this;
+            E moved_error(std::move(with_error.error()));
+            with_error.destroy();
+            with_error.state_ = layers::state::value;
+            with_value.destroy();
+            ::new (std::addressof(with_value.storage_.err)) E(std::move(moved_error));
+            with_value.state_ = layers::state::error;
+        }
+    }
+
+    /// @brief Compares two `expected`s: equal if both hold a value (a
+    ///        value holds no data to differ on), or both hold an error
+    ///        and those errors compare equal.
+    /// @param x The left-hand `expected`.
+    /// @param y The right-hand `expected`, possibly with a different
+    ///           error type.
+    /// @return Whether `x` and `y` are equal, as described above.
+    template <class E2>
+    friend constexpr bool operator==(const expected& x, const expected<void, E2>& y) {
+        if (x.has_value() != y.has_value()) return false;
+        if (x.has_value()) return true;
+        return static_cast<bool>(x.error() == y.error());
+    }
+    /// @brief See the primary template's `operator!=` for why this is
+    ///        defined explicitly rather than relying on C++20 rewriting.
+    /// @param x The left-hand `expected`.
+    /// @param y The right-hand `expected`, possibly with a different
+    ///           error type.
+    /// @return Whether `x` and `y` are unequal.
+    template <class E2>
+    friend constexpr bool operator!=(const expected& x, const expected<void, E2>& y) {
+        return !(x == y);
+    }
+
+    /// @brief Compares against an `unexpected<G>`: equal only when `x`
+    ///        holds an error and it compares equal to `e`'s.
+    /// @param x The `expected`.
+    /// @param e The `unexpected` to compare against.
+    /// @return Whether `x` holds an error equal to `e.error()`.
+    template <class G>
+    friend constexpr bool operator==(const expected& x, const unexpected<G>& e) {
+        return !x.has_value() && static_cast<bool>(x.error() == e.error());
+    }
+    /// @copydoc operator==(const expected&,const unexpected<G>&)
+    template <class G>
+    friend constexpr bool operator==(const unexpected<G>& e, const expected& x) {
+        return x == e;
+    }
+    /// @brief See the primary template's `operator!=` for why this is
+    ///        defined explicitly rather than relying on C++20 rewriting.
+    /// @param x The `expected`.
+    /// @param e The `unexpected` to compare against.
+    /// @return Whether `x` does not hold an error equal to `e.error()`.
+    template <class G>
+    friend constexpr bool operator!=(const expected& x, const unexpected<G>& e) {
+        return !(x == e);
+    }
+    /// @copydoc operator!=(const expected&,const unexpected<G>&)
+    template <class G>
+    friend constexpr bool operator!=(const unexpected<G>& e, const expected& x) {
+        return !(x == e);
+    }
+};
+/// \endcond
 
 /// @brief ADL swap, forwarding to `expected`'s member `swap`.
 /// @param lhs The first `expected`.
