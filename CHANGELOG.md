@@ -6,6 +6,8 @@ Versions are CalVer: `YY.MM.MICRO` (see docs/adr/0005-calver-versioning.md).
 
 ## [Unreleased]
 
+## [26.7.0] - 2026-07-26
+
 ### Added
 - Initial project scaffold: `rivets` (detection macros), `truss` (C++17
   polyfills), `deck` (higher-level utilities) as header-only libraries under

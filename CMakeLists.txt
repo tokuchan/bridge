@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
-# See docs/adr/0005-calver-versioning.md. 0.0.0 until the first release is
-# cut; CHANGELOG.md's [Unreleased] section is the current in-progress state.
-project(bridge VERSION 0.0.0 LANGUAGES CXX)
+# See docs/adr/0005-calver-versioning.md (CalVer, YY.MM.MICRO).
+project(bridge VERSION 26.7.0 LANGUAGES CXX)
 
 # CMAKE_SOURCE_DIR is fixed to the *outermost* project's root for the
 # whole cmake run; when bridge is pulled in via FetchContent/
