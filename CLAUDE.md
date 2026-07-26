@@ -42,3 +42,16 @@ enough to be a coherent, reviewable idea. Cross-cutting docs
 (`CONTEXT.md`, `CHANGELOG.md`) split the same way: each commit carries
 only the glossary/changelog lines that specific commit's code actually
 motivates, not the whole session's worth at once.
+
+`git-atomic-commit` (a global script, not part of this repo) automates
+the stash/gate/commit/restore dance above: stage the unit's files, then
+pipe the commit message into `git-atomic-commit --gate './bridge test'
+--gate './bridge docs'`.
+
+## Before cutting a release
+
+Run the full compiler matrix (`./scripts/test-matrix.sh`), not just the
+default devShell or a couple of spot-checked `--devshell` runs — it
+builds and tests against every devShell in `flake.nix`
+(gcc13–15, clang_18–21) and is the actual gate a release should clear,
+not a substitute for per-commit velocity during a design session.

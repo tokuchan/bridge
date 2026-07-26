@@ -1,0 +1,5 @@
+# Host-dispatched (ADR-0017): probe files live outside the project
+# directory (e.g. a scratch/tmp path), which a container's mounts
+# wouldn't see. Devshell selection (--devshell) still applies -- see
+# ADR-0004 -- it's orthogonal to container-vs-host dispatch.
+dispatch = host
