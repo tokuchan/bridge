@@ -1204,11 +1204,18 @@ public:
     }
 
     /// @brief Destroys whatever this held and constructs a new value in
-    ///        place from `args`.
+    ///        place from `args`. Constrained to `is_nothrow_constructible_v<T,
+    ///        Args...>`, matching `std::expected` exactly -- confirmed
+    ///        necessary by hitting a real compile error against the
+    ///        real type without it (this polyfill was, incorrectly,
+    ///        unconditionally permissive here), not assumed. Destroying
+    ///        the old alternative before constructing the new one is
+    ///        only exception-safe when the new construction can't
+    ///        throw, which is exactly what this constraint guarantees.
     /// @param args Forwarded to `T`'s constructor.
     /// @return A reference to the newly-constructed value.
-    template <class... Args>
-    constexpr T& emplace(Args&&... args) {
+    template <class... Args, class = std::enable_if_t<std::is_nothrow_constructible_v<T, Args...>>>
+    constexpr T& emplace(Args&&... args) noexcept {
         this->destroy();
         ::new (std::addressof(this->storage_.val)) T(std::forward<Args>(args)...);
         this->state_ = layers::state::value;

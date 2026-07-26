@@ -206,8 +206,14 @@ TEST_CASE("bridge::truss::expected::operator-> accesses the value's members", "[
 }
 
 TEST_CASE("bridge::truss::expected::emplace replaces the contents with a new value", "[truss][expected]") {
+    // emplace requires is_nothrow_constructible_v<T, Args...>, matching
+    // std::expected exactly -- std::string(const char*) can throw
+    // (allocation), so this moves from an existing std::string instead
+    // (nothrow for libstdc++/libc++'s std::string) rather than
+    // constructing from a string literal directly.
     bridge::truss::expected<std::string, int> e{bridge::truss::unexpect, 1};
-    e.emplace("hello");
+    std::string hello{"hello"};
+    e.emplace(std::move(hello));
     REQUIRE(e.has_value());
     REQUIRE(*e == "hello");
 }

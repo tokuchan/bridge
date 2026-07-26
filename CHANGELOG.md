@@ -83,6 +83,16 @@ Versions are CalVer: `YY.MM.MICRO` (see docs/adr/0005-calver-versioning.md).
   without `<version>`, the macro would be invisible and the check would
   always report `0`, meaning a passthrough path gated on it could never
   actually activate on any toolchain, regardless of real support.
+- Truss's `expected<T,E>::emplace` was unconditionally available for
+  any `Args` constructible into `T`; `std::expected::emplace` requires
+  `is_nothrow_constructible_v<T, Args...>` specifically, since
+  destroy-then-construct is only exception-safe when the construct step
+  can't throw. Confirmed by hitting a real compile error against the
+  real `std::expected` (`expected<std::string, int>::emplace("hello")`
+  -- `std::string(const char*)` can throw via allocation) once Deck's
+  passthrough selection made that comparison possible, not assumed; the
+  tests that relied on the missing constraint now move from an existing
+  `std::string` instead.
 - Doxygen's handling of class-template partial specializations
   conflates member lookup with the primary template: documenting
   `expected<void,E>`'s members caused Doxygen to resolve the primary
