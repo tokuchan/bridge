@@ -63,3 +63,28 @@ Versions are CalVer: `YY.MM.MICRO` (see docs/adr/0005-calver-versioning.md).
   `bridge_deck_optional_cpp23_tests` explicitly at C++23). See
   `docs/adr/0008-best-effort-head-standard.md`. `CONTEXT.md`'s Deck entry
   updated accordingly.
+- Packaging: `install()` rules for headers + `bridge::rivets`/`truss`/`deck`,
+  a `find_package(bridge CONFIG)` package config
+  (`cmake/bridgeConfig.cmake.in`), and `cmake/FetchBridge.cmake`'s
+  `bridge_fetch()` for consumers who want bridge without installing a
+  package first. CPack builds `.deb` (`libbridge-dev`), `.rpm`
+  (`bridge-devel`), and `.tar.bz2`, driven by a new `./bridge package`
+  command running under a dedicated `packaging` Nix devShell selected
+  automatically via its own default (`commands/package/conf`). A Nix
+  package output (`nix build .#bridge`) is a fourth distribution channel.
+  See `docs/adr/0009-packaging-via-cpack.md`.
+
+### Fixed
+- `include/{rivets,truss,deck}/CMakeLists.txt` used `CMAKE_SOURCE_DIR`
+  (always the *outermost* project's root) instead of
+  `CMAKE_CURRENT_SOURCE_DIR` (bridge's own root regardless of nesting) for
+  the include path — broke header resolution the moment bridge was
+  consumed via `FetchContent`/`add_subdirectory`. `BRIDGE_BUILD_TESTS` and
+  `install()`/CPack now default off when bridge isn't the top-level
+  project, so a `FetchContent` consumer doesn't get bridge's own test
+  suite or install rules as a side effect of using the library.
+
+### Changed
+- `run.sh` submodule bumped for its new per-command default devShell
+  (`devshell =` in `commands/<cmd>/conf`, root→leaf inherited like
+  `dispatch`), used by `commands/package/conf`.
