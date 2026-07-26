@@ -6,6 +6,15 @@ Versions are CalVer: `YY.MM.MICRO` (see docs/adr/0005-calver-versioning.md).
 
 ## [Unreleased]
 
+### Added
+- `rivets/features.hpp`: `__cpp_lib_expected` Feature Test
+  (`bridge::rivets::features::lib_expected`), first step toward full
+  `std::expected` support. Unlike `__cpp_lib_optional`, this one
+  legitimately reports `0` on pre-C++23 toolchains — `std::expected`
+  doesn't exist at all before C++23, confirmed by direct compiler
+  probe (GCC/Clang both fail to find `<expected>` under
+  `-std=c++17`/`-std=c++20`) rather than assumed.
+
 ## [26.7.0] - 2026-07-26
 
 ### Added

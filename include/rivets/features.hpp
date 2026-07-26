@@ -38,9 +38,20 @@
 #    define BRIDGE_RIVETS_FEATURES_LIB_OPTIONAL 0
 #endif
 
+/// @def BRIDGE_RIVETS_FEATURES_LIB_EXPECTED
+/// @brief `#if`-usable value of `__cpp_lib_expected`, or `0` if undefined.
+#ifdef __cpp_lib_expected
+#    define BRIDGE_RIVETS_FEATURES_LIB_EXPECTED __cpp_lib_expected
+#else
+#    define BRIDGE_RIVETS_FEATURES_LIB_EXPECTED 0
+#endif
+
 namespace bridge::rivets::features {
 
 /// @brief Value of `__cpp_lib_optional`, or `0` if undefined.
 inline constexpr long lib_optional = BRIDGE_RIVETS_FEATURES_LIB_OPTIONAL;
+
+/// @brief Value of `__cpp_lib_expected`, or `0` if undefined.
+inline constexpr long lib_expected = BRIDGE_RIVETS_FEATURES_LIB_EXPECTED;
 
 } // namespace bridge::rivets::features
