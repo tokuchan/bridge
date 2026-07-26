@@ -6,6 +6,8 @@ Versions are CalVer: `YY.MM.MICRO` (see docs/adr/0005-calver-versioning.md).
 
 ## [Unreleased]
 
+## [26.7.1] - 2026-07-26
+
 ### Added
 - Deck's `bridge::expected<T,E>` (also `bridge::deck::expected<T,E>`):
   a passthrough alias to `std::expected<T,E>` when the ecosystem's
