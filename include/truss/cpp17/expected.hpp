@@ -19,6 +19,7 @@
 #pragma once
 
 #include <exception>
+#include <functional>
 #include <initializer_list>
 #include <memory>
 #include <type_traits>
@@ -787,6 +788,221 @@ public:
     template <class U>
     constexpr T value_or(U&& v) && {
         return has_value() ? std::move(**this) : static_cast<T>(std::forward<U>(v));
+    }
+
+    /// @brief The contained error, or `g` converted to `E` if this
+    ///        holds a value. Not part of the original `std::expected`
+    ///        proposal (P0323R12 explicitly excluded it), but present
+    ///        under the same `__cpp_lib_expected` value as the rest of
+    ///        the type on every ecosystem this project's compiler
+    ///        matrix covers -- confirmed by direct compile probe before
+    ///        relying on it, not assumed. See
+    ///        docs/adr/0010-expected-truss-owns-the-class.md.
+    /// @param g The fallback error.
+    /// @return A copy of the contained error, or `g` converted to `E`.
+    template <class G>
+    constexpr E error_or(G&& g) const& {
+        return has_value() ? static_cast<E>(std::forward<G>(g)) : error();
+    }
+    /// @copydoc error_or(G&&)const&
+    template <class G>
+    constexpr E error_or(G&& g) && {
+        return has_value() ? static_cast<E>(std::forward<G>(g)) : std::move(error());
+    }
+
+    /// @brief If this holds a value, invoke `f` with it and return the
+    ///        result (which must itself be a specialization of
+    ///        `expected` with a matching `error_type`); otherwise
+    ///        return an error copy of that same type.
+    /// @param f A callable returning a specialization of `expected`.
+    /// @return `f`'s result, or an error copy of its `expected` type.
+    template <class F>
+    constexpr auto and_then(F&& f) & {
+        using U = std::remove_cv_t<std::invoke_result_t<F, T&>>;
+        static_assert(is_expected_v<U>, "F must return a specialization of expected");
+        static_assert(std::is_same_v<typename U::error_type, E>, "F's expected<..., E> must use this expected's E");
+        if (has_value()) {
+            return std::invoke(std::forward<F>(f), **this);
+        }
+        return U(unexpect_t{}, error());
+    }
+    /// @copydoc and_then(F&&)&
+    template <class F>
+    constexpr auto and_then(F&& f) const& {
+        using U = std::remove_cv_t<std::invoke_result_t<F, const T&>>;
+        static_assert(is_expected_v<U>, "F must return a specialization of expected");
+        static_assert(std::is_same_v<typename U::error_type, E>, "F's expected<..., E> must use this expected's E");
+        if (has_value()) {
+            return std::invoke(std::forward<F>(f), **this);
+        }
+        return U(unexpect_t{}, error());
+    }
+    /// @copydoc and_then(F&&)&
+    template <class F>
+    constexpr auto and_then(F&& f) && {
+        using U = std::remove_cv_t<std::invoke_result_t<F, T&&>>;
+        static_assert(is_expected_v<U>, "F must return a specialization of expected");
+        static_assert(std::is_same_v<typename U::error_type, E>, "F's expected<..., E> must use this expected's E");
+        if (has_value()) {
+            return std::invoke(std::forward<F>(f), std::move(**this));
+        }
+        return U(unexpect_t{}, std::move(error()));
+    }
+    /// @copydoc and_then(F&&)&
+    template <class F>
+    constexpr auto and_then(F&& f) const&& {
+        using U = std::remove_cv_t<std::invoke_result_t<F, const T&&>>;
+        static_assert(is_expected_v<U>, "F must return a specialization of expected");
+        static_assert(std::is_same_v<typename U::error_type, E>, "F's expected<..., E> must use this expected's E");
+        if (has_value()) {
+            return std::invoke(std::forward<F>(f), std::move(**this));
+        }
+        return U(unexpect_t{}, std::move(error()));
+    }
+
+    /// @brief If this holds an error, invoke `f` with it and return the
+    ///        result (which must itself be a specialization of
+    ///        `expected` with a matching `value_type`); otherwise
+    ///        return a value copy of that same type.
+    /// @param f A callable returning a specialization of `expected`.
+    /// @return `f`'s result, or a value copy of its `expected` type.
+    template <class F>
+    constexpr auto or_else(F&& f) & {
+        using U = std::remove_cv_t<std::invoke_result_t<F, E&>>;
+        static_assert(is_expected_v<U>, "F must return a specialization of expected");
+        static_assert(std::is_same_v<typename U::value_type, T>, "F's expected<T, ...> must use this expected's T");
+        if (has_value()) {
+            return U(std::in_place, **this);
+        }
+        return std::invoke(std::forward<F>(f), error());
+    }
+    /// @copydoc or_else(F&&)&
+    template <class F>
+    constexpr auto or_else(F&& f) const& {
+        using U = std::remove_cv_t<std::invoke_result_t<F, const E&>>;
+        static_assert(is_expected_v<U>, "F must return a specialization of expected");
+        static_assert(std::is_same_v<typename U::value_type, T>, "F's expected<T, ...> must use this expected's T");
+        if (has_value()) {
+            return U(std::in_place, **this);
+        }
+        return std::invoke(std::forward<F>(f), error());
+    }
+    /// @copydoc or_else(F&&)&
+    template <class F>
+    constexpr auto or_else(F&& f) && {
+        using U = std::remove_cv_t<std::invoke_result_t<F, E&&>>;
+        static_assert(is_expected_v<U>, "F must return a specialization of expected");
+        static_assert(std::is_same_v<typename U::value_type, T>, "F's expected<T, ...> must use this expected's T");
+        if (has_value()) {
+            return U(std::in_place, std::move(**this));
+        }
+        return std::invoke(std::forward<F>(f), std::move(error()));
+    }
+    /// @copydoc or_else(F&&)&
+    template <class F>
+    constexpr auto or_else(F&& f) const&& {
+        using U = std::remove_cv_t<std::invoke_result_t<F, const E&&>>;
+        static_assert(is_expected_v<U>, "F must return a specialization of expected");
+        static_assert(std::is_same_v<typename U::value_type, T>, "F's expected<T, ...> must use this expected's T");
+        if (has_value()) {
+            return U(std::in_place, std::move(**this));
+        }
+        return std::invoke(std::forward<F>(f), std::move(error()));
+    }
+
+    /// @brief If this holds a value, invoke `f` with it and return
+    ///        `expected<U,E>` containing the result; otherwise return
+    ///        an error copy of `expected<U,E>`. Unlike `std::expected`,
+    ///        `f` returning `void` isn't yet supported here -- that
+    ///        needs the `expected<void,E>` partial specialization,
+    ///        landing in a follow-up commit.
+    /// @param f A callable returning a non-`void` value.
+    /// @return `f`'s result wrapped in `expected<U,E>`, or an error copy.
+    template <class F>
+    constexpr auto transform(F&& f) & {
+        using U = std::remove_cv_t<std::invoke_result_t<F, T&>>;
+        static_assert(!std::is_same_v<U, void>, "F must not return void (expected<void,E> isn't implemented yet)");
+        if (has_value()) {
+            return expected<U, E>(std::in_place, std::invoke(std::forward<F>(f), **this));
+        }
+        return expected<U, E>(unexpect_t{}, error());
+    }
+    /// @copydoc transform(F&&)&
+    template <class F>
+    constexpr auto transform(F&& f) const& {
+        using U = std::remove_cv_t<std::invoke_result_t<F, const T&>>;
+        static_assert(!std::is_same_v<U, void>, "F must not return void (expected<void,E> isn't implemented yet)");
+        if (has_value()) {
+            return expected<U, E>(std::in_place, std::invoke(std::forward<F>(f), **this));
+        }
+        return expected<U, E>(unexpect_t{}, error());
+    }
+    /// @copydoc transform(F&&)&
+    template <class F>
+    constexpr auto transform(F&& f) && {
+        using U = std::remove_cv_t<std::invoke_result_t<F, T&&>>;
+        static_assert(!std::is_same_v<U, void>, "F must not return void (expected<void,E> isn't implemented yet)");
+        if (has_value()) {
+            return expected<U, E>(std::in_place, std::invoke(std::forward<F>(f), std::move(**this)));
+        }
+        return expected<U, E>(unexpect_t{}, std::move(error()));
+    }
+    /// @copydoc transform(F&&)&
+    template <class F>
+    constexpr auto transform(F&& f) const&& {
+        using U = std::remove_cv_t<std::invoke_result_t<F, const T&&>>;
+        static_assert(!std::is_same_v<U, void>, "F must not return void (expected<void,E> isn't implemented yet)");
+        if (has_value()) {
+            return expected<U, E>(std::in_place, std::invoke(std::forward<F>(f), std::move(**this)));
+        }
+        return expected<U, E>(unexpect_t{}, std::move(error()));
+    }
+
+    /// @brief If this holds an error, invoke `f` with it and return
+    ///        `expected<T,G>` containing the result wrapped in
+    ///        `unexpected`; otherwise return a value copy of
+    ///        `expected<T,G>`.
+    /// @param f A callable returning a non-`void` value.
+    /// @return `f`'s result wrapped in `expected<T,G>`'s error, or a
+    ///         value copy.
+    template <class F>
+    constexpr auto transform_error(F&& f) & {
+        using G = std::remove_cv_t<std::invoke_result_t<F, E&>>;
+        static_assert(!std::is_same_v<G, void>, "F must not return void");
+        if (has_value()) {
+            return expected<T, G>(std::in_place, **this);
+        }
+        return expected<T, G>(unexpect_t{}, std::invoke(std::forward<F>(f), error()));
+    }
+    /// @copydoc transform_error(F&&)&
+    template <class F>
+    constexpr auto transform_error(F&& f) const& {
+        using G = std::remove_cv_t<std::invoke_result_t<F, const E&>>;
+        static_assert(!std::is_same_v<G, void>, "F must not return void");
+        if (has_value()) {
+            return expected<T, G>(std::in_place, **this);
+        }
+        return expected<T, G>(unexpect_t{}, std::invoke(std::forward<F>(f), error()));
+    }
+    /// @copydoc transform_error(F&&)&
+    template <class F>
+    constexpr auto transform_error(F&& f) && {
+        using G = std::remove_cv_t<std::invoke_result_t<F, E&&>>;
+        static_assert(!std::is_same_v<G, void>, "F must not return void");
+        if (has_value()) {
+            return expected<T, G>(std::in_place, std::move(**this));
+        }
+        return expected<T, G>(unexpect_t{}, std::invoke(std::forward<F>(f), std::move(error())));
+    }
+    /// @copydoc transform_error(F&&)&
+    template <class F>
+    constexpr auto transform_error(F&& f) const&& {
+        using G = std::remove_cv_t<std::invoke_result_t<F, const E&&>>;
+        static_assert(!std::is_same_v<G, void>, "F must not return void");
+        if (has_value()) {
+            return expected<T, G>(std::in_place, std::move(**this));
+        }
+        return expected<T, G>(unexpect_t{}, std::invoke(std::forward<F>(f), std::move(error())));
     }
 
     /// @brief Destroys whatever this held and constructs a new value in

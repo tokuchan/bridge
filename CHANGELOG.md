@@ -7,6 +7,18 @@ Versions are CalVer: `YY.MM.MICRO` (see docs/adr/0005-calver-versioning.md).
 ## [Unreleased]
 
 ### Added
+- Truss's `expected<T,E>` monadic operations: `and_then`, `or_else`,
+  `transform`, `transform_error` (full value-category fidelity,
+  matching `std::expected`'s member-function shape rather than
+  `optional`'s free-function-plus-wrapper split, since Truss already
+  owns the whole class here), and `error_or` -- absent from the
+  original C++23 proposal (P0323R12 explicitly excluded it) but present
+  under the same `__cpp_lib_expected` value as the rest of the type on
+  every ecosystem this project's compiler matrix covers, confirmed by
+  direct compile probe earlier this session. `transform`'s `F`
+  returning `void` (which would produce `expected<void,E>`) isn't
+  supported yet -- that needs the `expected<void,E>` partial
+  specialization landing in a follow-up commit.
 - Truss's `expected<T,E>` core: constructors (default, value, `unexpect`,
   `unexpected<G>`, copy, move, and a converting constructor from
   `expected<U,G>`), copy/move assignment plus assignment from a raw
