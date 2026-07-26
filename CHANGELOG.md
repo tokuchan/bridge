@@ -33,3 +33,14 @@ Versions are CalVer: `YY.MM.MICRO` (see docs/adr/0005-calver-versioning.md).
 - `run.sh` pulled in as the `./bridge` command (git submodule at `.run`).
 - CalVer versioning (`YY.MM.MICRO`); see
   `docs/adr/0005-calver-versioning.md`.
+- Rivets detector naming calculus: a Detector per Entity (seeded constant
+  + `gt`/`ge`/`lt`/`le`/`eq` as both constexpr functions and `#if`-usable
+  function-like macros), plus `BRIDGE_RIVETS_DEFINE_DETECTOR`/
+  `_DEFINE_DETECTOR_RANGE` to generate Named Detectors on demand. Real
+  Detectors for GCC, Clang, and the C++ standard (extending
+  `rivets/standard.hpp`); Boost, MSVC, libstdc++, and libc++ stubbed with
+  their intended shape documented but not yet implemented. See
+  `docs/adr/0006-detector-naming-calculus.md`.
+- Doxygen `MACRO_EXPANSION`/`EXPAND_AS_DEFINED` for the detector generator
+  macros, so Named Detectors (which only exist via macro expansion) are
+  visible to the documentation-coverage gate instead of silently invisible.

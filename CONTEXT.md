@@ -27,3 +27,15 @@ _Avoid_: impl namespace, internal namespace
 **Exports namespace**:
 The curated namespace nested inside a Detail namespace holding only the symbols promoted toward the public API (`...::exports`), pulled into `bridge::exports::...` and, from there, hand-picked into `bridge::` itself. See [ADR-0001](docs/adr/0001-namespace-and-export-scheme.md).
 _Avoid_: public namespace, api namespace
+
+**Entity**:
+One of the four things Rivets detects a version range for: C++ standard, compiler, STL implementation, or Boost. Each Entity gets its own Detector.
+_Avoid_: dimension, target
+
+**Detector**:
+A seeded per-Entity constant plus five generic parameterized comparators (`gt`/`ge`/`lt`/`le`/`eq`), each in two forms — constexpr functions (`bridge::rivets::gcc::ge(12)`, for `if constexpr`) and function-like macros (`BRIDGE_RIVETS_GCC_GE(12)`, for `#if`) — usable for any number without pre-declaring it. Lives directly in its namespace — no Detail/Exports tiering, since there's never more than one right answer to a version check. See [ADR-0006](docs/adr/0006-detector-naming-calculus.md).
+_Avoid_: feature test, version check
+
+**Named Detector**:
+A specific, individually-generated `(entity, comparator, number)` check — the sparse, curated cells of the entity × comparator × version table that code actually branches on. Generated via `BRIDGE_RIVETS_DEFINE_DETECTOR` as a zero-arg constexpr alias (`bridge::rivets::gcc::gt_12()`) calling the matching Detector comparator — never a named `#if`-usable macro, since macro expansion cannot emit a `#define`; a named macro form is always one hand-written line. See [ADR-0006](docs/adr/0006-detector-naming-calculus.md).
+_Avoid_: feature macro, version macro
