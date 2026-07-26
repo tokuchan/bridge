@@ -89,6 +89,23 @@ TEST_CASE("bridge::truss::expected::transform returns an error copy when it hold
     REQUIRE(result.error() == "boom");
 }
 
+TEST_CASE("bridge::truss::expected::transform with a void-returning F produces expected<void,E>",
+          "[truss][expected][monadic]") {
+    bridge::truss::expected<int, std::string> a{5};
+    bool called = false;
+    auto result = a.transform([&called](int) { called = true; });
+    static_assert(std::is_same_v<decltype(result), bridge::truss::expected<void, std::string>>);
+    REQUIRE(result.has_value());
+    REQUIRE(called);
+
+    bridge::truss::expected<int, std::string> b{bridge::truss::unexpect, "boom"};
+    bool called_on_error = false;
+    auto error_result = b.transform([&called_on_error](int) { called_on_error = true; });
+    REQUIRE_FALSE(error_result.has_value());
+    REQUIRE(error_result.error() == "boom");
+    REQUIRE_FALSE(called_on_error);
+}
+
 TEST_CASE("bridge::truss::expected::transform can change the contained type", "[truss][expected][monadic]") {
     bridge::truss::expected<std::string, int> a{std::string{"hello"}};
     auto result = a.transform([](const std::string& s) { return s.size(); });

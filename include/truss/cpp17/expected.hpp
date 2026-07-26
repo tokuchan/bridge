@@ -1109,51 +1109,78 @@ public:
     }
 
     /// @brief If this holds a value, invoke `f` with it and return
-    ///        `expected<U,E>` containing the result; otherwise return
-    ///        an error copy of `expected<U,E>`. Unlike `std::expected`,
-    ///        `f` returning `void` isn't yet supported here -- that
-    ///        needs the `expected<void,E>` partial specialization,
-    ///        landing in a follow-up commit.
-    /// @param f A callable returning a non-`void` value.
+    ///        `expected<U,E>` containing the result (or `expected<void,E>`
+    ///        if `f` returns `void`, matching `std::expected` -- initially
+    ///        missing here, fixed once `expected<void,E>` existed to
+    ///        chain to); otherwise return an error copy.
+    /// @param f A callable, invoked with the contained value.
     /// @return `f`'s result wrapped in `expected<U,E>`, or an error copy.
     template <class F>
     constexpr auto transform(F&& f) & {
         using U = std::remove_cv_t<std::invoke_result_t<F, T&>>;
-        static_assert(!std::is_same_v<U, void>, "F must not return void (expected<void,E> isn't implemented yet)");
-        if (has_value()) {
-            return expected<U, E>(std::in_place, std::invoke(std::forward<F>(f), **this));
+        if constexpr (std::is_void_v<U>) {
+            if (has_value()) {
+                std::invoke(std::forward<F>(f), **this);
+                return expected<void, E>(std::in_place);
+            }
+            return expected<void, E>(unexpect_t{}, error());
+        } else {
+            if (has_value()) {
+                return expected<U, E>(std::in_place, std::invoke(std::forward<F>(f), **this));
+            }
+            return expected<U, E>(unexpect_t{}, error());
         }
-        return expected<U, E>(unexpect_t{}, error());
     }
     /// @copydoc transform(F&&)&
     template <class F>
     constexpr auto transform(F&& f) const& {
         using U = std::remove_cv_t<std::invoke_result_t<F, const T&>>;
-        static_assert(!std::is_same_v<U, void>, "F must not return void (expected<void,E> isn't implemented yet)");
-        if (has_value()) {
-            return expected<U, E>(std::in_place, std::invoke(std::forward<F>(f), **this));
+        if constexpr (std::is_void_v<U>) {
+            if (has_value()) {
+                std::invoke(std::forward<F>(f), **this);
+                return expected<void, E>(std::in_place);
+            }
+            return expected<void, E>(unexpect_t{}, error());
+        } else {
+            if (has_value()) {
+                return expected<U, E>(std::in_place, std::invoke(std::forward<F>(f), **this));
+            }
+            return expected<U, E>(unexpect_t{}, error());
         }
-        return expected<U, E>(unexpect_t{}, error());
     }
     /// @copydoc transform(F&&)&
     template <class F>
     constexpr auto transform(F&& f) && {
         using U = std::remove_cv_t<std::invoke_result_t<F, T&&>>;
-        static_assert(!std::is_same_v<U, void>, "F must not return void (expected<void,E> isn't implemented yet)");
-        if (has_value()) {
-            return expected<U, E>(std::in_place, std::invoke(std::forward<F>(f), std::move(**this)));
+        if constexpr (std::is_void_v<U>) {
+            if (has_value()) {
+                std::invoke(std::forward<F>(f), std::move(**this));
+                return expected<void, E>(std::in_place);
+            }
+            return expected<void, E>(unexpect_t{}, std::move(error()));
+        } else {
+            if (has_value()) {
+                return expected<U, E>(std::in_place, std::invoke(std::forward<F>(f), std::move(**this)));
+            }
+            return expected<U, E>(unexpect_t{}, std::move(error()));
         }
-        return expected<U, E>(unexpect_t{}, std::move(error()));
     }
     /// @copydoc transform(F&&)&
     template <class F>
     constexpr auto transform(F&& f) const&& {
         using U = std::remove_cv_t<std::invoke_result_t<F, const T&&>>;
-        static_assert(!std::is_same_v<U, void>, "F must not return void (expected<void,E> isn't implemented yet)");
-        if (has_value()) {
-            return expected<U, E>(std::in_place, std::invoke(std::forward<F>(f), std::move(**this)));
+        if constexpr (std::is_void_v<U>) {
+            if (has_value()) {
+                std::invoke(std::forward<F>(f), std::move(**this));
+                return expected<void, E>(std::in_place);
+            }
+            return expected<void, E>(unexpect_t{}, std::move(error()));
+        } else {
+            if (has_value()) {
+                return expected<U, E>(std::in_place, std::invoke(std::forward<F>(f), std::move(**this)));
+            }
+            return expected<U, E>(unexpect_t{}, std::move(error()));
         }
-        return expected<U, E>(unexpect_t{}, std::move(error()));
     }
 
     /// @brief If this holds an error, invoke `f` with it and return

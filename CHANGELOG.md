@@ -94,6 +94,19 @@ Versions are CalVer: `YY.MM.MICRO` (see docs/adr/0005-calver-versioning.md).
   `-std=c++17`/`-std=c++20`) rather than assumed.
 
 ### Fixed
+- Truss's `expected<T,E>::transform` rejected a `void`-returning `F`
+  with a `static_assert`, deferred until `expected<void,E>` existed to
+  chain to (added in the following commit) -- but the primary template
+  was never actually updated once it landed. `std::expected::transform`
+  has always supported `F` returning `void` (producing
+  `expected<void,E>`), so code compiling against passthrough
+  (`bridge::expected<int,E>{5}.transform([](int){})`) failed to compile
+  against the polyfill -- the exact "behaviorally indistinguishable"
+  violation docs/adr/0008 exists to prevent, confirmed by compiling the
+  discriminating case under both the default (polyfill) and
+  `-std=c++23` (passthrough) targets before fixing it, not assumed. All
+  four `transform` overloads now branch on `is_void_v<U>` via `if
+  constexpr`, matching `expected<void,E>`'s own `transform`.
 - `rivets/features.hpp` checked `__cpp_lib_*` macros without first
   including `<version>` (the SD-6-designed header that exposes every
   library feature-test macro without pulling in each one's full
