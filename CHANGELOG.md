@@ -7,6 +7,15 @@ Versions are CalVer: `YY.MM.MICRO` (see docs/adr/0005-calver-versioning.md).
 ## [Unreleased]
 
 ### Added
+- Truss's `expected<T,E>` comparison operators: against another
+  `expected<T2,E2>`, a raw value (both directions), and `unexpected<G>`
+  (both directions). Also fixes a gap in the prior `unexpected<E>`
+  commit: `std::unexpected`/`std::expected` only define `operator==`,
+  relying on C++20's automatic `!=` rewriting from it -- unavailable
+  under this header's C++17 floor, so `!=` genuinely failed to compile
+  before this commit despite `==` working. `operator!=` is now defined
+  explicitly everywhere `==` is, for both `unexpected<E>` and
+  `expected<T,E>`, matching passthrough usability.
 - Truss's `expected<T,E>` monadic operations: `and_then`, `or_else`,
   `transform`, `transform_error` (full value-category fidelity,
   matching `std::expected`'s member-function shape rather than

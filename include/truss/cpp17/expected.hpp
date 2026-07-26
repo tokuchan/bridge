@@ -144,6 +144,22 @@ public:
         return lhs.val_ == rhs.error();
     }
 
+    /// @brief Compares the wrapped errors for inequality. `std::unexpected`
+    ///        only defines `operator==`, relying on C++20's automatic
+    ///        `!=` rewriting from it -- unavailable to code compiled as
+    ///        C++17, this header's floor, so this polyfill defines `!=`
+    ///        explicitly to match usability under passthrough (confirmed
+    ///        `!=` alone genuinely fails to compile without this under
+    ///        `-std=c++17`, not assumed).
+    /// @param lhs The left-hand `unexpected`.
+    /// @param rhs The right-hand `unexpected`, possibly of a different
+    ///            error type.
+    /// @return Whether `lhs.error() != rhs.error()`.
+    template <class E2>
+    friend constexpr bool operator!=(const unexpected& lhs, const unexpected<E2>& rhs) {
+        return !(lhs == rhs);
+    }
+
     /// @brief ADL swap, forwarding to the member @ref swap.
     /// @param x The first `unexpected`.
     /// @param y The second `unexpected`.
@@ -1015,6 +1031,94 @@ public:
         ::new (std::addressof(this->storage_.val)) T(std::forward<Args>(args)...);
         this->state_ = layers::state::value;
         return this->storage_.val;
+    }
+
+    /// @brief Compares two `expected`s: equal if both hold a value and
+    ///        those values compare equal, or both hold an error and
+    ///        those errors compare equal; never equal if one holds a
+    ///        value and the other an error.
+    /// @param x The left-hand `expected`.
+    /// @param y The right-hand `expected`, possibly with different
+    ///           value/error types.
+    /// @return Whether `x` and `y` are equal, as described above.
+    template <class T2, class E2>
+    friend constexpr bool operator==(const expected& x, const expected<T2, E2>& y) {
+        if (x.has_value() != y.has_value()) return false;
+        if (x.has_value()) return static_cast<bool>(*x == *y);
+        return static_cast<bool>(x.error() == y.error());
+    }
+    /// @brief `std::expected` relies on C++20's automatic `!=` rewriting
+    ///        from `operator==`, unavailable under this header's C++17
+    ///        floor -- see the `unexpected::operator!=` comment for why
+    ///        this is defined explicitly here and throughout.
+    /// @param x The left-hand `expected`.
+    /// @param y The right-hand `expected`, possibly with different
+    ///           value/error types.
+    /// @return Whether `x` and `y` are unequal.
+    template <class T2, class E2>
+    friend constexpr bool operator!=(const expected& x, const expected<T2, E2>& y) {
+        return !(x == y);
+    }
+
+    /// @brief Compares against a raw value: equal only when `x` holds a
+    ///        value and it compares equal to `v`.
+    /// @param x The `expected`.
+    /// @param v The value to compare against.
+    /// @return Whether `x` holds a value equal to `v`.
+    template <class U, class = std::enable_if_t<!is_expected_v<std::decay_t<U>> && !is_unexpected_v<std::decay_t<U>>>>
+    friend constexpr auto operator==(const expected& x, const U& v) -> decltype(std::declval<const T&>() == v, bool{}) {
+        return x.has_value() && static_cast<bool>(*x == v);
+    }
+    /// @copydoc operator==(const expected&,const U&)
+    template <class U, class = std::enable_if_t<!is_expected_v<std::decay_t<U>> && !is_unexpected_v<std::decay_t<U>>>>
+    friend constexpr auto operator==(const U& v, const expected& x) -> decltype(std::declval<const T&>() == v, bool{}) {
+        return x == v;
+    }
+    /// @brief Compares against a raw value for inequality (see the
+    ///        `unexpected::operator!=` comment for why this is defined
+    ///        explicitly rather than relying on C++20 rewriting).
+    /// @param x The `expected`.
+    /// @param v The value to compare against.
+    /// @return Whether `x` does not hold a value equal to `v`.
+    template <class U, class = std::enable_if_t<!is_expected_v<std::decay_t<U>> && !is_unexpected_v<std::decay_t<U>>>>
+    friend constexpr auto operator!=(const expected& x, const U& v) -> decltype(std::declval<const T&>() == v, bool{}) {
+        return !(x == v);
+    }
+    /// @copydoc operator!=(const expected&,const U&)
+    template <class U, class = std::enable_if_t<!is_expected_v<std::decay_t<U>> && !is_unexpected_v<std::decay_t<U>>>>
+    friend constexpr auto operator!=(const U& v, const expected& x) -> decltype(std::declval<const T&>() == v, bool{}) {
+        return !(x == v);
+    }
+
+    /// @brief Compares against an `unexpected<G>`: equal only when `x`
+    ///        holds an error and it compares equal to `e`'s.
+    /// @param x The `expected`.
+    /// @param e The `unexpected` to compare against.
+    /// @return Whether `x` holds an error equal to `e.error()`.
+    template <class G>
+    friend constexpr bool operator==(const expected& x, const unexpected<G>& e) {
+        return !x.has_value() && static_cast<bool>(x.error() == e.error());
+    }
+    /// @copydoc operator==(const expected&,const unexpected<G>&)
+    template <class G>
+    friend constexpr bool operator==(const unexpected<G>& e, const expected& x) {
+        return x == e;
+    }
+    /// @brief Compares against an `unexpected<G>` for inequality (see
+    ///        the `unexpected::operator!=` comment for why this is
+    ///        defined explicitly rather than relying on C++20
+    ///        rewriting).
+    /// @param x The `expected`.
+    /// @param e The `unexpected` to compare against.
+    /// @return Whether `x` does not hold an error equal to `e.error()`.
+    template <class G>
+    friend constexpr bool operator!=(const expected& x, const unexpected<G>& e) {
+        return !(x == e);
+    }
+    /// @copydoc operator!=(const expected&,const unexpected<G>&)
+    template <class G>
+    friend constexpr bool operator!=(const unexpected<G>& e, const expected& x) {
+        return !(x == e);
     }
 
     /// @brief Swaps the contents of `*this` and `other`, including
