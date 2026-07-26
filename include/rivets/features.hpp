@@ -30,6 +30,20 @@
 /// it (Truss/Deck), not a detection concern.
 #pragma once
 
+// Library feature-test macros (__cpp_lib_*) are only guaranteed visible
+// once the header that defines the corresponding feature has actually
+// been included -- <version> is the SD-6-designed escape hatch: it
+// exposes every one of them without pulling in the full library
+// implementation behind each. Without this, a consumer that checks
+// BRIDGE_RIVETS_FEATURES_LIB_EXPECTED *before* deciding whether it's
+// even safe to #include <expected> (since that header doesn't exist at
+// all pre-C++23) would see a false 0 on every ecosystem, regardless of
+// real support -- confirmed by hitting exactly that failure mode in
+// deck/cpp17/expected.hpp before adding this, not assumed. Verified
+// <version> itself is safely includable under this project's C++17
+// floor on both GCC and Clang before relying on it.
+#include <version>
+
 /// @def BRIDGE_RIVETS_FEATURES_LIB_OPTIONAL
 /// @brief `#if`-usable value of `__cpp_lib_optional`, or `0` if undefined.
 #ifdef __cpp_lib_optional

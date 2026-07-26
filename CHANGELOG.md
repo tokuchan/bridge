@@ -72,6 +72,17 @@ Versions are CalVer: `YY.MM.MICRO` (see docs/adr/0005-calver-versioning.md).
   `-std=c++17`/`-std=c++20`) rather than assumed.
 
 ### Fixed
+- `rivets/features.hpp` checked `__cpp_lib_*` macros without first
+  including `<version>` (the SD-6-designed header that exposes every
+  library feature-test macro without pulling in each one's full
+  implementation). For `__cpp_lib_optional` this was masked by
+  consumers always including `<optional>` first regardless; for
+  `__cpp_lib_expected` it will be a real chicken-and-egg bug the moment
+  a consumer checks the Feature Test to decide whether it's even safe
+  to `#include <expected>` (which doesn't exist at all pre-C++23) --
+  without `<version>`, the macro would be invisible and the check would
+  always report `0`, meaning a passthrough path gated on it could never
+  actually activate on any toolchain, regardless of real support.
 - Doxygen's handling of class-template partial specializations
   conflates member lookup with the primary template: documenting
   `expected<void,E>`'s members caused Doxygen to resolve the primary
