@@ -42,10 +42,35 @@
         name = "clang_${toString v}";
         value = mkDevShell pkgs."llvmPackages_${toString v}".stdenv;
       }) clangVersions);
+
+      # dpkg/rpm are only needed for packaging (docs/adr/0009-packaging-
+      # via-cpack.md), not for everyday build/test/docs work -- kept out
+      # of commonPackages so the compiler-matrix devShells and default
+      # stay lean. cpack itself is already bundled with the cmake package.
+      bridgePackage = pkgs.stdenv.mkDerivation {
+        pname = "bridge";
+        # Matches PROJECT_VERSION until a release is actually cut
+        # (docs/adr/0005-calver-versioning.md).
+        version = "0.0.0";
+        src = self;
+        nativeBuildInputs = [ pkgs.cmake ];
+        cmakeFlags = [
+          "-DBRIDGE_BUILD_TESTS=OFF"
+          "-DBRIDGE_WITH_BOOST=OFF"
+        ];
+      };
     in
     {
       devShells.${system} = {
         default = mkDevShell pkgs.stdenv;
+        packaging = pkgs.mkShell {
+          packages = commonPackages ++ (with pkgs; [ dpkg rpm ]);
+        };
       } // gccShells // clangShells;
+
+      packages.${system} = {
+        bridge = bridgePackage;
+        default = bridgePackage;
+      };
     };
 }
