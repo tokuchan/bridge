@@ -7,6 +7,18 @@ Versions are CalVer: `YY.MM.MICRO` (see docs/adr/0005-calver-versioning.md).
 ## [Unreleased]
 
 ### Added
+- Truss's `expected<T,E>` core: constructors (default, value, `unexpect`,
+  `unexpected<G>`, copy, move, and a converting constructor from
+  `expected<U,G>`), copy/move assignment plus assignment from a raw
+  value or `unexpected<G>`, `has_value()`/`operator bool`, `operator->`/
+  `operator*`, `value()` (throwing) and `error()` (precondition-UB,
+  matching `std::expected`), `value_or`, `emplace`, and `swap` (member
+  and ADL, including across differing alternatives). Implemented via a
+  layered-base idiom (one layer per conditionally-deleted special
+  member) so the exact deletion conditions `std::expected` uses match —
+  verified with `static_assert`s against hand-picked throwing-move and
+  non-copyable types, and against a standalone probe before wiring it
+  into the real header.
 - Truss's `expected<T,E>` polyfill begins: `bridge::truss::unexpected<E>`,
   `bridge::truss::bad_expected_access<E>`, and the `unexpect_t`/`unexpect`
   tag, in a new `include/truss/cpp17/expected.hpp`. Unlike `optional`,
