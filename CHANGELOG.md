@@ -7,6 +7,28 @@ Versions are CalVer: `YY.MM.MICRO` (see docs/adr/0005-calver-versioning.md).
 ## [Unreleased]
 
 ### Added
+- Deck's `bridge::expected<T,E>` (also `bridge::deck::expected<T,E>`):
+  a passthrough alias to `std::expected<T,E>` when the ecosystem's
+  `__cpp_lib_expected` Feature Test confirms it, or Truss's polyfilled
+  `bridge::truss::expected<T,E>` otherwise -- Truss never itself
+  passes through, only Deck selects (docs/adr/0010). Unlike
+  `bridge::optional` (a wrapper built on Truss's free functions when
+  polyfilling), this selection is a plain type alias, since Truss
+  already owns a complete class with the right shape. The same
+  selection applies to `bridge::unexpected`, `bridge::unexpect_t`/
+  `bridge::unexpect`, and `bridge::bad_expected_access` -- confirmed
+  necessary by hitting a real compile error first: under passthrough,
+  `bridge::expected` *is* `std::expected`, whose constructors expect
+  `std::unexpect_t` specifically, not Truss's own (structurally
+  identical but distinct) type, so hard-coding those three to Truss's
+  polyfill regardless of path would silently break construction the
+  moment passthrough activates. Both paths are exercised by the test
+  suite (`bridge_deck_tests` at each toolchain's default standard,
+  `bridge_deck_expected_cpp23_tests` explicitly at C++23), including a
+  differential trait test comparing `bridge::truss::expected` directly
+  against `std::expected` in the same C++23 translation unit (possible
+  because Truss never passes through, so the two genuinely coexist as
+  distinct types there).
 - Truss's `expected<void,E>` partial specialization: mirrors the
   primary template member-for-member (constructors, assignment,
   `error()`/`error_or`, `and_then`/`or_else`/`transform`/
