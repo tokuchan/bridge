@@ -54,3 +54,12 @@ Versions are CalVer: `YY.MM.MICRO` (see docs/adr/0005-calver-versioning.md).
   `CONTEXT.md`'s Truss entry updated: Truss provides free-function
   primitives only, never a wrapper type with member methods (that's Deck's
   job going forward).
+- Deck's first STL-shaped wrapper type: `bridge::optional<T>` (also
+  `bridge::deck::optional<T>`), a passthrough alias to `std::optional<T>`
+  when the detected ecosystem's Feature Test confirms native monadic
+  support, or a wrapper built on Truss's free functions otherwise — no
+  detectable difference between the two paths. Both paths are exercised by
+  the test suite (`bridge_deck_tests` at each toolchain's default standard,
+  `bridge_deck_optional_cpp23_tests` explicitly at C++23). See
+  `docs/adr/0008-best-effort-head-standard.md`. `CONTEXT.md`'s Deck entry
+  updated accordingly.

@@ -13,7 +13,7 @@ Header-only library providing polyfilled implementations of modern C++ features 
 _Avoid_: Polyfills, shims, backports
 
 **Deck**:
-Header-only library of higher-level utilities, containers, and algorithms built on top of Truss, assuming Truss's polyfills are available. Not itself a polyfill library.
+Header-only library of higher-level utilities, containers, and algorithms built on top of Truss. Owns the STL-shaped wrapper types consumers actually declare variables as (e.g. `bridge::optional<T>`) — real member methods, matching the target STL interface exactly, selecting per [ADR-0008](docs/adr/0008-best-effort-head-standard.md) whether that's a passthrough alias to the real `std::` type or a wrapper built on Truss's free functions. Not itself a polyfill library — it composes what Truss provides.
 _Avoid_: Utils, extras
 
 **Exported namespace**:
