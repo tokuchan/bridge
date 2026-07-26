@@ -1,0 +1,18 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+
+# Boost is optional (docs/adr/0002-boost-optional-feature-detected.md);
+# only require it here if this installed build was actually configured
+# against it, so a consumer without Boost can still find_package(bridge)
+# when this build didn't need it.
+if(@BRIDGE_HAS_BOOST@)
+    if(POLICY CMP0167)
+        cmake_policy(SET CMP0167 NEW) # use upstream BoostConfig.cmake, not CMake's FindBoost
+    endif()
+    find_dependency(Boost)
+endif()
+
+include("${CMAKE_CURRENT_LIST_DIR}/bridgeTargets.cmake")
+
+check_required_components(bridge)

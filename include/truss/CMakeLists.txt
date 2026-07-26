@@ -2,7 +2,7 @@ add_library(truss INTERFACE)
 add_library(bridge::truss ALIAS truss)
 
 target_include_directories(truss INTERFACE
-    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
+    $<BUILD_INTERFACE:${BRIDGE_INCLUDE_DIR}>
     $<INSTALL_INTERFACE:include>
 )
 target_link_libraries(truss INTERFACE bridge::rivets)
