@@ -48,3 +48,9 @@ Versions are CalVer: `YY.MM.MICRO` (see docs/adr/0005-calver-versioning.md).
   Rivets concept distinct from Detector — a 1:1 wrap of an SD-6 feature-test
   macro rather than a computed version range. See
   `docs/adr/0007-feature-test-wrapping.md`.
+- Truss's first real feature: `bridge::truss::and_then`/`or_else`/`transform`
+  free functions on plain `std::optional<T>`, full value-category fidelity
+  (matching C++23's monadic `std::optional` methods), usable from C++17.
+  `CONTEXT.md`'s Truss entry updated: Truss provides free-function
+  primitives only, never a wrapper type with member methods (that's Deck's
+  job going forward).

@@ -9,7 +9,7 @@ Macro library for detecting language standards, language features, compiler vers
 _Avoid_: Config, feature test, compat macros
 
 **Truss**:
-Header-only library providing polyfilled implementations of modern C++ features for older standards, compilers, or STLs that lack them (e.g. a C++17-compatible `optional` with monadic methods). The load-bearing structural layer — mirrors STL naming and shape.
+Header-only library providing polyfilled implementations of modern C++ features for older standards, compilers, or STLs that lack them, as free functions (e.g. `bridge::truss::and_then(opt, f)` operating on a plain `std::optional<T>`) — never a wrapper type with member methods; that's Deck's job. The load-bearing structural layer.
 _Avoid_: Polyfills, shims, backports
 
 **Deck**:
