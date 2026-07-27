@@ -25,8 +25,14 @@ already *is* the fact, not a range Rivets computes.
 constexpr bool has_monadic_optional = bridge::rivets::features::lib_optional >= 202110L;
 
 #if BRIDGE_RIVETS_FEATURES_LIB_OPTIONAL >= 202110L
-// same check, #if-usable
+constexpr bool same_via_macro = true;
+#else
+constexpr bool same_via_macro = false;
 #endif
+
+int main() {
+    static_assert(has_monadic_optional == same_via_macro);
+}
 ```
 
 ## Notes

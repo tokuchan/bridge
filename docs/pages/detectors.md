@@ -33,15 +33,24 @@ product" this two-layer split serves).
 ```cpp
 #include <rivets/gcc.hpp>
 
-if constexpr (bridge::rivets::gcc::ge(13)) {
-    // GCC 13+: known-good behavior
-} else {
-    // Older GCC, or a different compiler entirely (version == 0)
+int classify() {
+    if constexpr (bridge::rivets::gcc::ge(13)) {
+        return 1; // GCC 13+: known-good behavior
+    } else {
+        return 0; // Older GCC, or a different compiler entirely (version == 0)
+    }
 }
 
 #if BRIDGE_RIVETS_GCC_GE(13)
-// same check, #if-usable -- e.g. for a #include guard
+constexpr bool has_workaround = false;
+#else
+constexpr bool has_workaround = true;
 #endif
+
+int main() {
+    classify();
+    (void)has_workaround;
+}
 ```
 
 ## Notes

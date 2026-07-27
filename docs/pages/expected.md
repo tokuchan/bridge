@@ -23,6 +23,8 @@ selects between it and the real `std::expected<T,E>`.
 
 ```cpp
 #include <deck/cpp17/expected.hpp>
+#include <string>
+#include <cassert>
 
 bridge::expected<int, std::string> half(int v) {
     if (v % 2 != 0) {
@@ -31,13 +33,17 @@ bridge::expected<int, std::string> half(int v) {
     return bridge::expected<int, std::string>{v / 2};
 }
 
-bridge::expected<int, std::string> start{8};
-auto result = start.and_then(half).and_then(half);
-// result == bridge::expected<int, std::string>{2}
+int main() {
+    bridge::expected<int, std::string> start{8};
+    auto result = start.and_then(half).and_then(half);
+    assert(result.has_value());
+    assert(*result == 2);
 
-bridge::expected<int, std::string> odd{7};
-auto failed = odd.and_then(half);
-// failed.error() == "odd"
+    bridge::expected<int, std::string> odd{7};
+    auto failed = odd.and_then(half);
+    assert(!failed.has_value());
+    assert(failed.error() == "odd");
+}
 ```
 
 Both return statements construct `expected` explicitly rather than

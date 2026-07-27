@@ -24,13 +24,18 @@ when it does.
 
 ```cpp
 #include <deck/cpp17/optional.hpp>
+#include <string>
+#include <cassert>
 
-bridge::optional<std::string> name{"hello"};
+int main() {
+    bridge::optional<std::string> name{"hello"};
 
-auto result = name.transform([](const std::string& s) { return s.size(); })
-                  .and_then([](std::size_t n) { return bridge::optional<std::size_t>{n * 2}; });
+    auto result = name.transform([](const std::string& s) { return s.size(); })
+                      .and_then([](std::size_t n) { return bridge::optional<std::size_t>{n * 2}; });
 
-// result == bridge::optional<std::size_t>{10}
+    assert(result.has_value());
+    assert(*result == 10);
+}
 ```
 
 ## Divergences

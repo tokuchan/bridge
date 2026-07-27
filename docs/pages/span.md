@@ -23,13 +23,17 @@ fixed-`Extent` span stores no runtime size at all).
 
 ```cpp
 #include <deck/cpp17/span.hpp>
+#include <vector>
+#include <cassert>
 
-std::vector<int> data = {1, 2, 3, 4, 5};
-bridge::span<int> s(data);
+int main() {
+    std::vector<int> data = {1, 2, 3, 4, 5};
+    bridge::span<int> s(data);
 
-s.first(2)[1]; // == 2
-s.last(2)[0];  // == 4
-bridge::as_bytes(s).size(); // == 5 * sizeof(int)
+    assert(s.first(2)[1] == 2);
+    assert(s.last(2)[0] == 4);
+    assert(bridge::as_bytes(s).size() == 5 * sizeof(int));
+}
 ```
 
 ## Divergences

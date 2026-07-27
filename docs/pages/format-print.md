@@ -27,10 +27,14 @@ points -- and `print`/`println` always call into *this same library's*
 ```cpp
 #include <deck/cpp17/format.hpp>
 #include <deck/cpp17/print.hpp>
+#include <string>
+#include <cassert>
 
-std::string s = bridge::format("{} is {:.1f}% done", "build", 87.5);
-// s == "build is 87.5% done"
-bridge::println("{}", s);
+int main() {
+    std::string s = bridge::format("{} is {:.1f}% done", "build", 87.5);
+    assert(s == "build is 87.5% done");
+    bridge::println("{}", s);
+}
 ```
 
 ## Divergences

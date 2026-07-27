@@ -21,6 +21,8 @@ ADR a consumer has to go spelunking for.
 #include <rivets/diagnostics.hpp>
 
 BRIDGE_RIVETS_DIVERGENCE_NOTE("bridge::widget (polyfill): rounds down instead of to nearest, see docs/adr/0099.")
+
+int main() {}
 ```
 
 Placed where the *diverging* code path is actually selected (a Deck

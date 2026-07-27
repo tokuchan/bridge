@@ -20,10 +20,13 @@ own small one here rather than being shoehorned into `optional` or
 
 ```cpp
 #include <deck/cpp17/version.hpp>
+#include <cassert>
 
-bridge::deck::version_info v{};
-v.major;       // Deck's major version (BRIDGE_DECK_VERSION_MAJOR)
-v.truss.major; // Truss's major version (BRIDGE_TRUSS_VERSION_MAJOR)
+int main() {
+    bridge::deck::version_info v{};
+    assert(v.major == BRIDGE_DECK_VERSION_MAJOR);
+    assert(v.truss.major == BRIDGE_TRUSS_VERSION_MAJOR);
+}
 ```
 
 ## Notes
