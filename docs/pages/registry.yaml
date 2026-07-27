@@ -97,6 +97,20 @@ facilities:
       - include/truss/cpp17/span.hpp
       - include/deck/cpp17/span.hpp
 
+  - name: jthread
+    page: jthread.md
+    cppreference: https://en.cppreference.com/w/cpp/thread/jthread
+    # stop_token/stop_source's own real header is <stop_token>, not
+    # <thread> -- same disclosed simplification as format-print's
+    # print/println living in <print> (docs/adr/0017's amendment,
+    # once the full page is written).
+    header: "<thread>"
+    headers:
+      - include/truss/cpp17/stop_token.hpp
+      # include/truss/cpp17/jthread.hpp, include/deck/cpp17/stop_token.hpp,
+      # and include/deck/cpp17/jthread.hpp land in follow-up commits
+      # (docs/adr/0017-jthread-stop-token-truss-owns-the-class.md).
+
   - name: detectors
     page: detectors.md
     cppreference: null

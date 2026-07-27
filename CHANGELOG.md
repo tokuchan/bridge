@@ -7,6 +7,19 @@ Versions are CalVer: `YY.MM.MICRO` (see docs/adr/0005-calver-versioning.md).
 ## [Unreleased]
 
 ### Added
+- Truss's `stop_token`/`stop_source` polyfill, in a new
+  `include/truss/cpp17/stop_token.hpp`: from-scratch classes
+  (docs/adr/0017) sharing cancellation state via `std::shared_ptr`,
+  with the standard's `stop_possible()` distinction between "stop
+  already requested" and "no `stop_source` left, so stop is now
+  permanently impossible" correctly tracked via a source refcount
+  separate from the shared_ptr's own. Includes
+  `nostopstate_t`/`nostopstate`, `swap`, comparisons, and a
+  `std::hash<stop_token>` specialization. `stop_callback` is not
+  implemented (disclosed follow-up, see the ADR). New `jthread`
+  facility registered in `docs/pages/registry.yaml`
+  (`include/truss/cpp17/jthread.hpp` and both `deck/cpp17/` headers
+  land in follow-up commits).
 - docs/adr/0017-jthread-stop-token-truss-owns-the-class.md: the
   `jthread`/`stop_token` backport's design -- Truss owns full classes
   (matching `expected`/`span`'s precedent), the Detector-backed
