@@ -257,7 +257,13 @@ def cppreference_stub(facility, symbol_name):
     header = facility.get("header")
     if not header:
         return None
-    return f"`{header}::{symbol_name}`"
+    # Rivets' untiered facilities keep their full C++ namespace in
+    # `symbol_name` to stay unique in the table (docs/adr/0006) -- the
+    # stub only wants the leaf identifier alongside the header, same as
+    # the Truss/Deck tiered facilities where `symbol_name` is already
+    # bare.
+    leaf = symbol_name.rpartition("::")[2]
+    return f"`{header}::{leaf}`"
 
 
 def render_symbols_block(facility):
