@@ -2,8 +2,9 @@
 /// @brief The `print`/`println` family Deck owns: passthrough aliases
 ///        to real `std::print`/`std::println` when the detected
 ///        ecosystem has them, or Truss's polyfilled
-///        `bridge::truss::print`/`println` otherwise. Gated on
-///        `BRIDGE_RIVETS_FEATURES_LIB_PRINT` independently of
+///        `bridge::truss::print`/`println` otherwise.
+///
+///        Gated on `BRIDGE_RIVETS_FEATURES_LIB_PRINT` independently of
 ///        `format.hpp`'s own `BRIDGE_RIVETS_FEATURES_LIB_FORMAT` gate
 ///        -- confirmed by direct compiler probe (docs/adr/0012) that
 ///        `format` and `print` cross their real passthrough

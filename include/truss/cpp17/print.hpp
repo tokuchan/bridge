@@ -1,7 +1,8 @@
 /// @file print.hpp
 /// @brief Truss's `std::print`/`std::println` polyfill, built
-///        unconditionally on this same library's `format.hpp` —
-///        never on whichever `format` facility Deck ultimately
+///        unconditionally on this same library's `format.hpp`.
+///
+///        Never on whichever `format` facility Deck ultimately
 ///        selects, preserving the "Truss never passes through"
 ///        invariant uniformly across both features. Confirmed via
 ///        benchmark (docs/adr/0012) that a hypothetical
@@ -12,11 +13,11 @@
 ///        order-of-magnitude gap that would justify one. See
 ///        docs/adr/0012-format-print-truss-owns-the-facility.md.
 ///
-/// `bridge::truss::print`/`println` are unconditionally this polyfill,
-/// regardless of standard or toolchain — that selection happens
-/// exactly once, in Deck, independent of `format`'s own selection
-/// (the two cross their real passthrough thresholds at different
-/// standards).
+///        `bridge::truss::print`/`println` are unconditionally this
+///        polyfill, regardless of standard or toolchain -- that
+///        selection happens exactly once, in Deck, independent of
+///        `format`'s own selection (the two cross their real
+///        passthrough thresholds at different standards).
 #pragma once
 
 #include <cstdio>

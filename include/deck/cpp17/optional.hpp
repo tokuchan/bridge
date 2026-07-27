@@ -173,14 +173,16 @@ public:
     constexpr bool operator op(std::nullopt_t lhs, const optional<T>& rhs) noexcept {           \
         return lhs op static_cast<const std::optional<T>&>(rhs);                                \
     }                                                                                          \
-    /** @brief Forwards to std::optional's operator op. Comparing a      \
-     *  plain std::optional<T> against optional<T> (same T, not just     \
-     *  U deducible generically) needs its own exact-match overload:     \
-     *  with only the generic-U overloads below, this specific direction \
-     *  (plain on the left) hits a genuine 3-way ambiguity that partial  \
-     *  ordering cannot break, between std::optional's own base-deduced  \
-     *  candidate and the generic-U ones on both sides -- confirmed by   \
-     *  hitting that exact compile error, not assumed upfront. */        \
+    /** @brief Forwards to std::optional's operator op.                  \
+     *                                                                   \
+     *  Comparing a plain std::optional<T> against optional<T> (same T,  \
+     *  not just U deducible generically) needs its own exact-match      \
+     *  overload: with only the generic-U overloads below, this specific \
+     *  direction (plain on the left) hits a genuine 3-way ambiguity     \
+     *  that partial ordering cannot break, between std::optional's own  \
+     *  base-deduced candidate and the generic-U ones on both sides --   \
+     *  confirmed by hitting that exact compile error, not assumed       \
+     *  upfront. */                                                      \
     template <class T>                                                                         \
     constexpr bool operator op(const optional<T>& lhs, const std::optional<T>& rhs) {           \
         return static_cast<const std::optional<T>&>(lhs) op rhs;                                \
@@ -191,11 +193,13 @@ public:
         return lhs op static_cast<const std::optional<T>&>(rhs);                                \
     }                                                                                          \
     /** @brief Forwards to std::optional's operator op, only when that   \
-     *  comparison is actually well-formed. Unconstrained, this overload \
-     *  is greedy enough to get pulled in via ADL for unrelated types    \
-     *  that happen to mention optional<T> (Catch2's own internal        \
-     *  expression-template machinery hit exactly this during testing —  \
-     *  confirmed empirically, not a hypothetical concern). */           \
+     *  comparison is actually well-formed.                              \
+     *                                                                   \
+     *  Unconstrained, this overload is greedy enough to get pulled in   \
+     *  via ADL for unrelated types that happen to mention optional<T>   \
+     *  (Catch2's own internal expression-template machinery hit         \
+     *  exactly this during testing -- confirmed empirically, not a      \
+     *  hypothetical concern). */                                        \
     template <class T, class U>                                                                \
     constexpr auto operator op(const optional<T>& lhs, const U& rhs)                            \
         -> decltype(std::declval<const std::optional<T>&>() op rhs, bool{}) {                   \

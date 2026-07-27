@@ -56,7 +56,9 @@ public:
 /// @brief Cursor over the not-yet-consumed portion of a replacement
 ///        field's format-spec substring, plus the auto/manual
 ///        argument-indexing state shared across the whole format
-///        string. Matches real `std::format_parse_context`'s
+///        string.
+///
+///        Matches real `std::format_parse_context`'s
 ///        `begin()`/`end()`/`advance_to()`/`next_arg_id()`/
 ///        `check_arg_id()` shape — a user's `formatter<T>::parse`
 ///        written against this type is source-compatible with the
@@ -757,10 +759,11 @@ private:
 ///        numeric presentations (`d`/`b`/`B`/`o`/`x`/`X`) treat it as
 ///        its underlying integer value; `?` (C++23 debug format) wraps
 ///        it in single quotes with the same escaping
-///        `formatter<std::string>` uses -- confirmed real
-///        `std::format` supports `{:?}` for `char` too (e.g. `'x'`,
-///        `'\n'`), not just strings, before adding it here. Precision
-///        isn't valid.
+///        `formatter<std::string>` uses. Precision isn't valid.
+///
+///        Confirmed real `std::format` supports `{:?}` for `char` too
+///        (e.g. `'x'`, `'\n'`), not just strings, before adding it
+///        here.
 template <>
 struct formatter<char> {
     /// @brief Parses the format-spec.
@@ -810,11 +813,12 @@ inline constexpr bool is_formattable_float_v = std::is_floating_point_v<T>;
 ///        `f`/`F` (fixed), `e`/`E` (scientific), `g`/`G` (general),
 ///        `a`/`A` (hex), or none (shortest round-trip when no
 ///        precision is given either, matching `std::to_chars`'
-///        default; otherwise behaves like `g`). Built on
-///        `std::to_chars` (a real C++17 facility) for the actual
-///        numeric conversion rather than a hand-rolled algorithm --
-///        `f`/`F`/`e`/`E`/`g`/`G` default to precision 6 when no
-///        precision is given, matching `printf`'s convention; this was
+///        default; otherwise behaves like `g`).
+///
+///        Built on `std::to_chars` (a real C++17 facility) for the
+///        actual numeric conversion rather than a hand-rolled
+///        algorithm -- `f`/`F`/`e`/`E`/`g`/`G` default to precision 6
+///        when no precision is given, matching `printf`'s convention;
 ///        confirmed against real `std::format`'s actual output, not
 ///        assumed from the standard text alone (it doesn't use
 ///        `to_chars`' own shortest-round-trip default the way the
@@ -1012,11 +1016,12 @@ private:
 };
 
 /// @brief A format string, implicitly constructible from anything
-///        convertible to `std::string_view` (matching real
-///        `std::format_string<Args...>`'s converting-constructor
-///        shape). Unlike the real type, this constructor does **not**
-///        validate the format string at compile time -- C++17 has no
-///        `consteval` to do that with (docs/adr/0012's disclosed
+///        convertible to `std::string_view`, matching real
+///        `std::format_string<Args...>`'s converting-constructor shape.
+///
+///        Unlike the real type, this constructor does **not** validate
+///        the format string at compile time -- C++17 has no `consteval`
+///        to do that with (docs/adr/0012's disclosed
 ///        compile-time-validation gap). Validation happens only when
 ///        the string is actually used to format, at which point a
 ///        malformed spec throws `format_error` same as `vformat`'s
@@ -1315,14 +1320,15 @@ std::size_t formatted_size(format_string<std::decay_t<Args>...> fmt, Args&&... a
 }
 
 /// @brief Type-erased argument pack for @ref vformat, constructed via
-///        `make_format_args`. Narrower in scope than real
-///        `std::format_args`: pinned to `format_context<
-///        std::back_insert_iterator<std::string>>` rather than generic
-///        over any output iterator, since this polyfill's scope
-///        doesn't include `vformat_to` (only plain `vformat`, which
-///        always targets `std::string`) -- a direct, disclosed
-///        consequence of docs/adr/0012's scope decision, not a
-///        separate divergence in its own right.
+///        `make_format_args`.
+///
+///        Narrower in scope than real `std::format_args`: pinned to
+///        `format_context<std::back_insert_iterator<std::string>>`
+///        rather than generic over any output iterator, since this
+///        polyfill's scope doesn't include `vformat_to` (only plain
+///        `vformat`, which always targets `std::string`) -- a direct,
+///        disclosed consequence of docs/adr/0012's scope decision, not
+///        a separate divergence in its own right.
 /// @see https://en.cppreference.com/w/cpp/utility/format
 class format_args {
 public:
@@ -1357,13 +1363,15 @@ private:
 };
 
 /// @brief Constructs a type-erased `format_args` from `args`, for
-///        `vformat`. Matches real `std::make_format_args`' shape
-///        (lvalue references -- called with the named parameters of
-///        whatever function is forwarding into `vformat`, which are
-///        themselves lvalues regardless of the original argument's
-///        value category). The result is only valid for the duration
-///        of the full expression that calls `vformat` with it, same
-///        lifetime constraint as the real function.
+///        `vformat`.
+///
+///        Matches real `std::make_format_args`' shape (lvalue
+///        references -- called with the named parameters of whatever
+///        function is forwarding into `vformat`, which are themselves
+///        lvalues regardless of the original argument's value
+///        category). The result is only valid for the duration of the
+///        full expression that calls `vformat` with it, same lifetime
+///        constraint as the real function.
 /// @tparam Args The argument types.
 /// @param args The arguments.
 /// @return The type-erased argument pack.

@@ -1,10 +1,12 @@
 /// @file expected.hpp
 /// @brief Truss's from-scratch `expected<T,E>` polyfill for standards
-///        that predate C++23 — unlike `std::optional`, `std::expected`
-///        doesn't exist at all before C++23, so there is no pre-existing
-///        STL type for Truss to add free functions onto (compare
-///        truss/cpp17/optional.hpp). This header is the exception to
-///        that shape: Truss owns a complete class here. See
+///        that predate C++23.
+///
+///        Unlike `std::optional`, `std::expected` doesn't exist at all
+///        before C++23, so there is no pre-existing STL type for Truss
+///        to add free functions onto (compare truss/cpp17/optional.hpp).
+///        This header is the exception to that shape: Truss owns a
+///        complete class here. See
 ///        docs/adr/0010-expected-truss-owns-the-class.md for the full
 ///        rationale, docs/adr/0001-namespace-and-export-scheme.md for
 ///        the namespace scheme this follows, and docs/adr/0008-best-
@@ -181,9 +183,11 @@ unexpected(E) -> unexpected<E>;
 
 /// @brief Thrown by `expected<T,E>::value()` when accessed without a
 ///        value; carries a copy of the error that caused the access to
-///        fail. Matches `std::bad_expected_access<E>`. Forward-declared
-///        here so the `void` specialization below (its common base) can
-///        reference it; defined for real further down.
+///        fail. Matches `std::bad_expected_access<E>`.
+///
+///        Forward-declared here so the `void` specialization below
+///        (its common base) can reference it; defined for real
+///        further down.
 /// @tparam E The wrapped error type.
 template <class E>
 class bad_expected_access;
@@ -694,9 +698,10 @@ struct void_move_assign_layer<E, false> : void_copy_assign_layer<E> {
 /// \endcond
 
 /// @brief True for `expected<U,G>` for any `U`/`G`, false otherwise.
-///        Used by the monadic operations (added in a follow-up commit)
-///        to constrain "F must return a specialization of expected",
-///        mirroring `truss/cpp17/optional.hpp`'s `is_optional`.
+///
+///        Used by the monadic operations to constrain "F must return
+///        a specialization of expected", mirroring
+///        `truss/cpp17/optional.hpp`'s `is_optional`.
 template <class T>
 struct is_expected : std::false_type {};
 
@@ -711,12 +716,14 @@ template <class T>
 inline constexpr bool is_expected_v = is_expected<T>::value;
 
 /// @brief Truss's polyfilled `expected<T,E>`, matching C++23's
-///        `std::expected<T,E>` for standards that predate it. See the
-///        file-level docs and docs/adr/0010-expected-truss-owns-the-
-///        class.md for the fidelity scope this implements: deletion
-///        conditions on the special members are matched exactly;
-///        conditional triviality and the standard's full two-stage
-///        exception-safe reassignment are explicitly out of scope.
+///        `std::expected<T,E>` for standards that predate it.
+///
+///        See the file-level docs and
+///        docs/adr/0010-expected-truss-owns-the-class.md for the
+///        fidelity scope this implements: deletion conditions on the
+///        special members are matched exactly; conditional triviality
+///        and the standard's full two-stage exception-safe
+///        reassignment are explicitly out of scope.
 ///
 ///        The converting constructors that accept `unexpected<G>`, a
 ///        raw value `U`, or another `expected<U,G>` are unconditionally
@@ -817,14 +824,16 @@ public:
     constexpr explicit expected(unexpected<G>&& u) : base(unexpect_t{}, std::move(u).error()) {}
 
     /// @brief Converting constructor from an `expected<U,G>` holding a
-    ///        value or error convertible to `T`/`E`. A documented,
-    ///        simplified subset of the standard's Constraints: matches
-    ///        `is_constructible_v<T, const U&>`/`is_constructible_v<E,
-    ///        const G&>`, but not the additional defensive guards the
-    ///        standard adds against ambiguity with `T = bool` or a
-    ///        source constructible from `expected<U,G>` itself --
-    ///        omitted here as out of scope, same spirit as the
-    ///        exception-safety and triviality trims in docs/adr/0010.
+    ///        value or error convertible to `T`/`E`.
+    ///
+    ///        A documented, simplified subset of the standard's
+    ///        Constraints: matches `is_constructible_v<T, const
+    ///        U&>`/`is_constructible_v<E, const G&>`, but not the
+    ///        additional defensive guards the standard adds against
+    ///        ambiguity with `T = bool` or a source constructible from
+    ///        `expected<U,G>` itself -- omitted here as out of scope,
+    ///        same spirit as the exception-safety and triviality trims
+    ///        in docs/adr/0010.
     /// @param other The `expected` to convert from.
     template <class U, class G,
               class = std::enable_if_t<std::is_constructible_v<T, const U&> && std::is_constructible_v<E, const G&>>>
@@ -1118,9 +1127,9 @@ public:
 
     /// @brief If this holds a value, invoke `f` with it and return
     ///        `expected<U,E>` containing the result (or `expected<void,E>`
-    ///        if `f` returns `void`, matching `std::expected` -- initially
-    ///        missing here, fixed once `expected<void,E>` existed to
-    ///        chain to); otherwise return an error copy.
+    ///        if `f` returns `void`); otherwise return an error copy.
+    ///
+    ///        Matches `std::expected::transform`.
     /// @param f A callable, invoked with the contained value.
     /// @return `f`'s result wrapped in `expected<U,E>`, or an error copy.
     template <class F>
@@ -1460,9 +1469,11 @@ public:
 
     /// @brief Converting constructor from an `expected<U,G>` where `U`
     ///        is also (possibly cv-qualified) `void`, and `G` converts
-    ///        to `E`. Same documented simplification as the primary
-    ///        template's converting constructor: omits the standard's
-    ///        extra defensive SFINAE guards.
+    ///        to `E`.
+    ///
+    ///        Same documented simplification as the primary template's
+    ///        converting constructor: omits the standard's extra
+    ///        defensive SFINAE guards.
     /// @param other The `expected` to convert from.
     template <class U, class G,
               class = std::enable_if_t<std::is_void_v<U> && std::is_constructible_v<E, const G&>>>

@@ -132,11 +132,12 @@ public:
     static constexpr std::size_t extent = Extent;
 
     /// @brief Default-constructs an empty span. Only available when
-    ///        `Extent == dynamic_extent || Extent == 0` -- matching
-    ///        real `std::span`'s constraint, confirmed via probe
-    ///        (`std::is_default_constructible_v` both ways against
-    ///        `std::span<int,3>`/`std::span<int,0>`) rather than
-    ///        assumed from the standard's prose alone.
+    ///        `Extent == dynamic_extent || Extent == 0`.
+    ///
+    ///        Matches real `std::span`'s constraint, confirmed via
+    ///        probe (`std::is_default_constructible_v` both ways
+    ///        against `std::span<int,3>`/`std::span<int,0>`) rather
+    ///        than assumed from the standard's prose alone.
     template <std::size_t E = Extent, class = std::enable_if_t<E == dynamic_extent || E == 0>>
     constexpr span() noexcept {}
 
