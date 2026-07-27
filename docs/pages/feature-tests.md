@@ -22,14 +22,14 @@ for the wrapping rationale.
 <!-- BRIDGE-DOCS:BEGIN symbols -->
 | Symbol | Kind | Brief | cppreference |
 |---|---|---|---|
-| `BRIDGE_RIVETS_FEATURES_LIB_EXPECTED` | define | \#if-usable value of __cpp_lib_expected, or 0 if undefined. | [https://en.cppreference.com/w/cpp/feature_test](https://en.cppreference.com/w/cpp/feature_test) |
-| `BRIDGE_RIVETS_FEATURES_LIB_FORMAT` | define | \#if-usable value of __cpp_lib_format, or 0 if undefined. | [https://en.cppreference.com/w/cpp/feature_test](https://en.cppreference.com/w/cpp/feature_test) |
-| `BRIDGE_RIVETS_FEATURES_LIB_OPTIONAL` | define | \#if-usable value of __cpp_lib_optional, or 0 if undefined. | [https://en.cppreference.com/w/cpp/feature_test](https://en.cppreference.com/w/cpp/feature_test) |
-| `BRIDGE_RIVETS_FEATURES_LIB_PRINT` | define | \#if-usable value of __cpp_lib_print, or 0 if undefined. | [https://en.cppreference.com/w/cpp/feature_test](https://en.cppreference.com/w/cpp/feature_test) |
-| `BRIDGE_RIVETS_FEATURES_LIB_SPAN` | define | \#if-usable value of __cpp_lib_span, or 0 if undefined. | [https://en.cppreference.com/w/cpp/feature_test](https://en.cppreference.com/w/cpp/feature_test) |
-| `bridge::rivets::features::lib_expected` | variable | Value of __cpp_lib_expected, or 0 if undefined. | [https://en.cppreference.com/w/cpp/feature_test](https://en.cppreference.com/w/cpp/feature_test) |
-| `bridge::rivets::features::lib_format` | variable | Value of __cpp_lib_format, or 0 if undefined. | [https://en.cppreference.com/w/cpp/feature_test](https://en.cppreference.com/w/cpp/feature_test) |
-| `bridge::rivets::features::lib_optional` | variable | Value of __cpp_lib_optional, or 0 if undefined. | [https://en.cppreference.com/w/cpp/feature_test](https://en.cppreference.com/w/cpp/feature_test) |
-| `bridge::rivets::features::lib_print` | variable | Value of __cpp_lib_print, or 0 if undefined. | [https://en.cppreference.com/w/cpp/feature_test](https://en.cppreference.com/w/cpp/feature_test) |
-| `bridge::rivets::features::lib_span` | variable | Value of __cpp_lib_span, or 0 if undefined. | [https://en.cppreference.com/w/cpp/feature_test](https://en.cppreference.com/w/cpp/feature_test) |
+| `BRIDGE_RIVETS_FEATURES_LIB_EXPECTED` | define | `#if`-usable value of `__cpp_lib_expected`, or `0` if undefined. | [https://en.cppreference.com/w/cpp/feature_test](https://en.cppreference.com/w/cpp/feature_test) |
+| `BRIDGE_RIVETS_FEATURES_LIB_FORMAT` | define | `#if`-usable value of `__cpp_lib_format`, or `0` if undefined. | [https://en.cppreference.com/w/cpp/feature_test](https://en.cppreference.com/w/cpp/feature_test) |
+| `BRIDGE_RIVETS_FEATURES_LIB_OPTIONAL` | define | `#if`-usable value of `__cpp_lib_optional`, or `0` if undefined. | [https://en.cppreference.com/w/cpp/feature_test](https://en.cppreference.com/w/cpp/feature_test) |
+| `BRIDGE_RIVETS_FEATURES_LIB_PRINT` | define | `#if`-usable value of `__cpp_lib_print`, or `0` if undefined. | [https://en.cppreference.com/w/cpp/feature_test](https://en.cppreference.com/w/cpp/feature_test) |
+| `BRIDGE_RIVETS_FEATURES_LIB_SPAN` | define | `#if`-usable value of `__cpp_lib_span`, or `0` if undefined. | [https://en.cppreference.com/w/cpp/feature_test](https://en.cppreference.com/w/cpp/feature_test) |
+| `bridge::rivets::features::lib_expected` | variable | Value of `__cpp_lib_expected`, or `0` if undefined. | [https://en.cppreference.com/w/cpp/feature_test](https://en.cppreference.com/w/cpp/feature_test) |
+| `bridge::rivets::features::lib_format` | variable | Value of `__cpp_lib_format`, or `0` if undefined. | [https://en.cppreference.com/w/cpp/feature_test](https://en.cppreference.com/w/cpp/feature_test) |
+| `bridge::rivets::features::lib_optional` | variable | Value of `__cpp_lib_optional`, or `0` if undefined. | [https://en.cppreference.com/w/cpp/feature_test](https://en.cppreference.com/w/cpp/feature_test) |
+| `bridge::rivets::features::lib_print` | variable | Value of `__cpp_lib_print`, or `0` if undefined. | [https://en.cppreference.com/w/cpp/feature_test](https://en.cppreference.com/w/cpp/feature_test) |
+| `bridge::rivets::features::lib_span` | variable | Value of `__cpp_lib_span`, or `0` if undefined. | [https://en.cppreference.com/w/cpp/feature_test](https://en.cppreference.com/w/cpp/feature_test) |
 <!-- BRIDGE-DOCS:END -->

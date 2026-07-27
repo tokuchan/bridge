@@ -86,11 +86,56 @@ def strip_template_args(name):
     return name[:idx].strip() if idx != -1 else name
 
 
+def escape_markdown_plain(text):
+    # Doxygen's Markdown pages get full autolink processing, unlike the
+    # comments these briefs were originally lifted from: a bare `#word`
+    # is parsed as an explicit link request ("#if-usable" -> tries to
+    # resolve a symbol named "if-usable"), and a bare `<T>` is parsed as
+    # an HTML tag start. Neither is a problem inside a `///` comment in
+    # a .hpp file, only once the same text lands in a table cell here --
+    # confirmed by hitting exactly these two Doxygen errors before
+    # adding this escaping, not assumed. Only applied to text *outside*
+    # a `<computeroutput>` code span -- inside one, `<`/`>`/`#` render
+    # literally, same as any other Markdown code span.
+    text = text.replace("|", "\\|")
+    text = text.replace("<", "&lt;").replace(">", "&gt;")
+    text = re.sub(r"#(?=\w)", r"\\#", text)
+    return text
+
+
+def render_inline(elem):
+    """Reconstructs Markdown from a Doxygen `<para>`-like element's
+    inline content: `<computeroutput>` (backtick-quoted code written in
+    the original /// comment) becomes a code span, `<bold>`/`<emphasis>`
+    become `**`/`*`, `<ref>` and anything else is flattened to its text.
+    Doxygen's own XML already carries this structure -- this replaces
+    the previous flatten-everything-via-itertext() approach, which threw
+    it away and left escaped literal angle brackets in its place."""
+    parts = []
+    if elem.text:
+        parts.append(escape_markdown_plain(elem.text))
+    for child in elem:
+        tag = child.tag
+        if tag == "computeroutput":
+            code = "".join(child.itertext()).replace("|", "\\|")
+            parts.append(f"`{code}`")
+        elif tag == "bold":
+            parts.append(f"**{render_inline(child)}**")
+        elif tag == "emphasis":
+            parts.append(f"*{render_inline(child)}*")
+        else:
+            parts.append(render_inline(child))
+        if child.tail:
+            parts.append(escape_markdown_plain(child.tail))
+    return "".join(parts)
+
+
 def brief_text(elem):
     bd = elem.find("briefdescription")
     if bd is None:
         return ""
-    return " ".join("".join(bd.itertext()).split())
+    text = " ".join(render_inline(para) for para in bd.findall("para"))
+    return " ".join(text.split())
 
 
 def collect_symbols(headers):
@@ -200,19 +245,19 @@ def render_headers_block(facility):
     return "\n".join(lines) + "\n"
 
 
-def escape_markdown_cell(text):
-    # Doxygen's Markdown pages get full autolink processing, unlike the
-    # comments these briefs were originally lifted from: a bare `#word`
-    # is parsed as an explicit link request ("#if-usable" -> tries to
-    # resolve a symbol named "if-usable"), and a bare `<T>` is parsed as
-    # an HTML tag start. Neither is a problem inside a `///` comment in
-    # a .hpp file, only once the same text lands in a table cell here --
-    # confirmed by hitting exactly these two Doxygen errors before
-    # adding this escaping, not assumed.
-    text = text.replace("|", "\\|")
-    text = text.replace("<", "&lt;").replace(">", "&gt;")
-    text = re.sub(r"#(?=\w)", r"\\#", text)
-    return text
+def cppreference_stub(facility, symbol_name):
+    """The compact `<header>::name` form shown in place of the full
+    cppreference URL, so the generated table has room to breathe
+    (especially on mobile) -- `header` is the facility's real C++
+    standard header (docs/pages/registry.yaml's `header:` field), not
+    derived from the cppreference URL's own path categorization, which
+    often doesn't match the symbol's actual header (`std::format`'s
+    cppreference path says "utility", but its real header is
+    `<format>`)."""
+    header = facility.get("header")
+    if not header:
+        return None
+    return f"`{header}::{symbol_name}`"
 
 
 def render_symbols_block(facility):
@@ -225,10 +270,11 @@ def render_symbols_block(facility):
         sep_row += "---|"
     lines = [header_row, sep_row]
     for sym in symbols:
-        brief = escape_markdown_cell(sym["brief"])
-        row = f"| `{sym['name']}` | {sym['kind']} | {brief} |"
+        name_cell = sym["name"].replace("|", "\\|")
+        row = f"| `{name_cell}` | {sym['kind']} | {sym['brief']} |"
         if cppref:
-            row += f" [{cppref}]({cppref}) |"
+            link_text = cppreference_stub(facility, sym["name"]) or cppref
+            row += f" [{link_text}]({cppref}) |"
         lines.append(row)
     if not symbols:
         note_cols = 4 if cppref else 3

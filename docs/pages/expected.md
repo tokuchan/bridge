@@ -35,9 +35,9 @@ only a code comment.
 <!-- BRIDGE-DOCS:BEGIN symbols -->
 | Symbol | Kind | Brief | cppreference |
 |---|---|---|---|
-| `bad_expected_access` | class | Thrown by expected&lt;T,E&gt;::value() when accessed without a value; carries a copy of the error that caused the access to fail. Matches std::bad_expected_access&lt;E&gt;. | [https://en.cppreference.com/w/cpp/utility/expected](https://en.cppreference.com/w/cpp/utility/expected) |
-| `expected` | class | Truss's polyfilled expected&lt;T,E&gt;, matching C++23's std::expected&lt;T,E&gt; for standards that predate it. | [https://en.cppreference.com/w/cpp/utility/expected](https://en.cppreference.com/w/cpp/utility/expected) |
-| `unexpect` | variable | The canonical unexpect_t instance, passed to select expected's in-place-error constructors. Matches std::unexpect. | [https://en.cppreference.com/w/cpp/utility/expected](https://en.cppreference.com/w/cpp/utility/expected) |
-| `unexpect_t` | struct | Tag type selecting expected's error-constructing constructor overloads, mirroring std::in_place_t. Matches std::unexpect_t. | [https://en.cppreference.com/w/cpp/utility/expected](https://en.cppreference.com/w/cpp/utility/expected) |
-| `unexpected` | class | Wraps an error value of type E, matching std::unexpected. Constructed explicitly and passed to expected's converting constructors, or returned directly from a function reporting failure. | [https://en.cppreference.com/w/cpp/utility/expected](https://en.cppreference.com/w/cpp/utility/expected) |
+| `bad_expected_access` | class | Thrown by `expected<T,E>::value()` when accessed without a value; carries a copy of the error that caused the access to fail. Matches `std::bad_expected_access<E>`. | [https://en.cppreference.com/w/cpp/utility/expected](https://en.cppreference.com/w/cpp/utility/expected) |
+| `expected` | class | Truss's polyfilled `expected<T,E>`, matching C++23's `std::expected<T,E>` for standards that predate it. | [https://en.cppreference.com/w/cpp/utility/expected](https://en.cppreference.com/w/cpp/utility/expected) |
+| `unexpect` | variable | The canonical `unexpect_t` instance, passed to select `expected`'s in-place-error constructors. Matches `std::unexpect`. | [https://en.cppreference.com/w/cpp/utility/expected](https://en.cppreference.com/w/cpp/utility/expected) |
+| `unexpect_t` | struct | Tag type selecting `expected`'s error-constructing constructor overloads, mirroring `std::in_place_t`. Matches `std::unexpect_t`. | [https://en.cppreference.com/w/cpp/utility/expected](https://en.cppreference.com/w/cpp/utility/expected) |
+| `unexpected` | class | Wraps an error value of type `E`, matching `std::unexpected`. Constructed explicitly and passed to `expected`'s converting constructors, or returned directly from a function reporting failure. | [https://en.cppreference.com/w/cpp/utility/expected](https://en.cppreference.com/w/cpp/utility/expected) |
 <!-- BRIDGE-DOCS:END -->
