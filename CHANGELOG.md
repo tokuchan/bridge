@@ -7,6 +7,15 @@ Versions are CalVer: `YY.MM.MICRO` (see docs/adr/0005-calver-versioning.md).
 ## [Unreleased]
 
 ### Added
+- New project-wide policy: any Truss-owned facility with a disclosed
+  divergence from the real standard facility that could reasonably
+  surprise a consumer gets a compiler-visible note, not just
+  documentation. `BRIDGE_RIVETS_DIVERGENCE_NOTE("...")`
+  (`include/rivets/diagnostics.hpp`) expands to `#pragma message
+  "..."`, verified safe under `-Wall -Wextra -Werror` on both GCC (a
+  note there, immune to `-Werror` by construction) and Clang
+  (categorized as a warning, but didn't trigger `-Werror` in practice
+  as tested). See `docs/adr/0011-warn-on-surprising-facility-divergences.md`.
 - `rivets/features.hpp`: `__cpp_lib_format` and `__cpp_lib_print`
   Feature Tests (`bridge::rivets::features::lib_format`/`lib_print`),
   first step toward full `std::format`/`std::print`/`std::println`
