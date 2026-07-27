@@ -44,7 +44,7 @@ struct point {
 // translation unit, where bridge::format is std::format instead).
 template <>
 struct bridge::truss::formatter<point> {
-    constexpr bridge::truss::format_parse_context::iterator parse(bridge::truss::format_parse_context& ctx) {
+    bridge::truss::format_parse_context::iterator parse(bridge::truss::format_parse_context& ctx) {
         return ctx.begin();
     }
 
