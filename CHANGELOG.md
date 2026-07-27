@@ -26,6 +26,16 @@ Versions are CalVer: `YY.MM.MICRO` (see docs/adr/0005-calver-versioning.md).
   cross their real thresholds at different standards, so they get
   independent Feature Tests rather than one shared gate.
 
+### Fixed
+- `bridge::expected`'s polyfill path now surfaces its two
+  already-shipped silent divergences from real `std::expected`
+  (unconditionally-explicit converting constructors, and the omitted
+  `converts-from-any-cvref` SFINAE guards) via
+  `BRIDGE_RIVETS_DIVERGENCE_NOTE` when the polyfill branch is active,
+  per the new policy above -- retroactively applied per explicit user
+  request, rather than left as a gap between the new policy and
+  already-shipped work.
+
 ## [26.7.1] - 2026-07-26
 
 ### Added

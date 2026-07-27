@@ -26,8 +26,14 @@
 /// polyfill regardless of which `expected` was selected would silently
 /// break construction the moment passthrough activates -- exactly the
 /// asymmetry docs/adr/0008 exists to prevent.
+///
+/// The polyfill branch also carries two `BRIDGE_RIVETS_DIVERGENCE_NOTE`s
+/// (docs/adr/0011-warn-on-surprising-facility-divergences.md) for
+/// disclosed divergences from real `std::expected` that only apply
+/// there -- see docs/adr/0010 for the full rationale behind each.
 #pragma once
 
+#include <rivets/diagnostics.hpp>
 #include <rivets/features.hpp>
 
 // <expected> doesn't exist at all before C++23 -- only include it when
@@ -62,6 +68,15 @@ template <class E>
 using bad_expected_access = std::bad_expected_access<E>;
 
 #else
+
+// docs/adr/0011-warn-on-surprising-facility-divergences.md: two
+// disclosed divergences from real std::expected apply whenever this
+// polyfill branch is active. See docs/adr/0010-expected-truss-owns-
+// the-class.md for the full rationale behind each.
+BRIDGE_RIVETS_DIVERGENCE_NOTE(
+    "bridge::expected (polyfill): converting constructors from unexpected<G>, a raw value, or expected<U,G> are unconditionally explicit here -- real std::expected allows implicit conversion when convertibility permits (C++17 has no explicit(bool) to make this conditional). See docs/adr/0010.")
+BRIDGE_RIVETS_DIVERGENCE_NOTE(
+    "bridge::expected (polyfill): the expected<U,G> converting constructor omits std::expected's extra defensive SFINAE guards (converts-from-any-cvref and friends), matching only the core is_constructible_v constraint -- an edge-case ambiguity real std::expected guards against that this polyfill doesn't. See docs/adr/0010.")
 
 /// @brief Truss's polyfill, for ecosystems without native
 ///        `std::expected` yet.
