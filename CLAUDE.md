@@ -55,3 +55,12 @@ default devShell or a couple of spot-checked `--devshell` runs — it
 builds and tests against every devShell in `flake.nix`
 (gcc13–15, clang_18–21) and is the actual gate a release should clear,
 not a substitute for per-commit velocity during a design session.
+
+**Tag format:** prefix the git tag with `v` (e.g. `v26.7.1`, not
+`26.7.1`) — GitHub's release tooling expects this.
+
+**CHANGELOG title:** when moving a release's entries out of
+`[Unreleased]` into a dated section, give that section a title/header
+alongside the version — GitHub wants a release title distinct from the
+description, and it should come from the CHANGELOG rather than be
+invented at tag time.
