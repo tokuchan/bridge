@@ -48,3 +48,47 @@ TEST_CASE("BRIDGE_RIVETS_FEATURES_LIB_EXPECTED is #if-usable", "[rivets][feature
     FAIL("BRIDGE_RIVETS_FEATURES_LIB_EXPECTED should be 0 or at least the C++23 baseline");
 #endif
 }
+
+TEST_CASE("bridge::rivets::features::lib_format matches __cpp_lib_format", "[rivets][features]") {
+#ifdef __cpp_lib_format
+    REQUIRE(bridge::rivets::features::lib_format == __cpp_lib_format);
+#else
+    // std::format doesn't exist at all before C++20 -- __cpp_lib_format
+    // is legitimately undefined under -std=c++17, confirmed by direct
+    // compiler probe before this Feature Test was written.
+    REQUIRE(bridge::rivets::features::lib_format == 0);
+#endif
+}
+
+TEST_CASE("BRIDGE_RIVETS_FEATURES_LIB_FORMAT is #if-usable", "[rivets][features]") {
+#if BRIDGE_RIVETS_FEATURES_LIB_FORMAT == 0
+    SUCCEED(); // pre-C++20 toolchains legitimately report 0 here
+#elif BRIDGE_RIVETS_FEATURES_LIB_FORMAT >= 201907L
+    SUCCEED();
+#else
+    FAIL("BRIDGE_RIVETS_FEATURES_LIB_FORMAT should be 0 or at least the C++20 baseline");
+#endif
+}
+
+TEST_CASE("bridge::rivets::features::lib_print matches __cpp_lib_print", "[rivets][features]") {
+#ifdef __cpp_lib_print
+    REQUIRE(bridge::rivets::features::lib_print == __cpp_lib_print);
+#else
+    // std::print doesn't exist at all before C++23 (confirmed empirically:
+    // the <print> header is includable under -std=c++20 on GCC, but
+    // std::print/std::println themselves are hard-rejected with "only
+    // available from C++23 onwards") -- __cpp_lib_print is legitimately
+    // undefined under -std=c++17/-std=c++20.
+    REQUIRE(bridge::rivets::features::lib_print == 0);
+#endif
+}
+
+TEST_CASE("BRIDGE_RIVETS_FEATURES_LIB_PRINT is #if-usable", "[rivets][features]") {
+#if BRIDGE_RIVETS_FEATURES_LIB_PRINT == 0
+    SUCCEED(); // pre-C++23 toolchains legitimately report 0 here
+#elif BRIDGE_RIVETS_FEATURES_LIB_PRINT >= 202211L
+    SUCCEED();
+#else
+    FAIL("BRIDGE_RIVETS_FEATURES_LIB_PRINT should be 0 or at least the C++23 baseline");
+#endif
+}

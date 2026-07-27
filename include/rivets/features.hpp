@@ -60,6 +60,22 @@
 #    define BRIDGE_RIVETS_FEATURES_LIB_EXPECTED 0
 #endif
 
+/// @def BRIDGE_RIVETS_FEATURES_LIB_FORMAT
+/// @brief `#if`-usable value of `__cpp_lib_format`, or `0` if undefined.
+#ifdef __cpp_lib_format
+#    define BRIDGE_RIVETS_FEATURES_LIB_FORMAT __cpp_lib_format
+#else
+#    define BRIDGE_RIVETS_FEATURES_LIB_FORMAT 0
+#endif
+
+/// @def BRIDGE_RIVETS_FEATURES_LIB_PRINT
+/// @brief `#if`-usable value of `__cpp_lib_print`, or `0` if undefined.
+#ifdef __cpp_lib_print
+#    define BRIDGE_RIVETS_FEATURES_LIB_PRINT __cpp_lib_print
+#else
+#    define BRIDGE_RIVETS_FEATURES_LIB_PRINT 0
+#endif
+
 namespace bridge::rivets::features {
 
 /// @brief Value of `__cpp_lib_optional`, or `0` if undefined.
@@ -67,5 +83,11 @@ inline constexpr long lib_optional = BRIDGE_RIVETS_FEATURES_LIB_OPTIONAL;
 
 /// @brief Value of `__cpp_lib_expected`, or `0` if undefined.
 inline constexpr long lib_expected = BRIDGE_RIVETS_FEATURES_LIB_EXPECTED;
+
+/// @brief Value of `__cpp_lib_format`, or `0` if undefined.
+inline constexpr long lib_format = BRIDGE_RIVETS_FEATURES_LIB_FORMAT;
+
+/// @brief Value of `__cpp_lib_print`, or `0` if undefined.
+inline constexpr long lib_print = BRIDGE_RIVETS_FEATURES_LIB_PRINT;
 
 } // namespace bridge::rivets::features

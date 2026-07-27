@@ -6,6 +6,17 @@ Versions are CalVer: `YY.MM.MICRO` (see docs/adr/0005-calver-versioning.md).
 
 ## [Unreleased]
 
+### Added
+- `rivets/features.hpp`: `__cpp_lib_format` and `__cpp_lib_print`
+  Feature Tests (`bridge::rivets::features::lib_format`/`lib_print`),
+  first step toward full `std::format`/`std::print`/`std::println`
+  support. Confirmed empirically before adding: `std::format` doesn't
+  exist before C++20, and while the `<print>` header is includable
+  even under `-std=c++20` on GCC, `std::print`/`std::println`
+  themselves are hard-rejected until `-std=c++23` -- the two features
+  cross their real thresholds at different standards, so they get
+  independent Feature Tests rather than one shared gate.
+
 ## [26.7.1] - 2026-07-26
 
 ### Added
