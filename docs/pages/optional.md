@@ -9,24 +9,50 @@ See [`<optional>`](https://en.cppreference.com/w/cpp/utility/optional) on cppref
 - `include/deck/cpp17/optional.hpp`
 <!-- BRIDGE-DOCS:END -->
 
-`std::optional<T>` itself has existed since C++17, so unlike `expected`
-or `format`, Truss has nothing to build from scratch here -- Truss owns
-only the *monadic* methods (`and_then`, `or_else`, `transform`) that
-arrived later, in C++23, as plain free functions operating on a real
-`std::optional<T>` (`bridge::truss::and_then(opt, f)`, never a wrapper
-type). Deck then owns `bridge::optional<T>`: a thin class publicly
-inheriting `std::optional<T>` and adding those same three operations as
-real member methods, so it reads and behaves exactly like the C++23
-type regardless of which standard is actually active underneath. See
-[ADR-0008](https://github.com/tokuchan/bridge/blob/master/docs/adr/0008-best-effort-head-standard.md)
-for the "behaviorally indistinguishable" bar this has to clear, and
-CONTEXT.md for how this shape (free functions on an existing STL type)
-differs from `expected`'s (a full class Truss owns outright) and
-`format`'s (a complete function-based facility) -- three different
-answers to the same underlying question, "what does Truss actually
-need to build." (ADR and CONTEXT.md links here point at the repository
-on GitHub, not this generated site -- they aren't part of Doxygen's
-input.)
+## Synopsis
+
+`bridge::optional<T>` is `std::optional<T>` plus its C++23 monadic
+methods (`and_then`, `or_else`, `transform`), available regardless of
+which standard is actually active. `std::optional<T>` itself has
+existed since C++17, so Truss builds only the three monadic methods as
+free functions on a real `std::optional<T>`; Deck wraps them into a
+thin class publicly inheriting `std::optional<T>` when the ecosystem's
+own `std::optional` doesn't have them yet, or passes through directly
+when it does.
+
+## Example
+
+```cpp
+#include <deck/cpp17/optional.hpp>
+
+bridge::optional<std::string> name{"hello"};
+
+auto result = name.transform([](const std::string& s) { return s.size(); })
+                  .and_then([](std::size_t n) { return bridge::optional<std::size_t>{n * 2}; });
+
+// result == bridge::optional<std::size_t>{10}
+```
+
+## Divergences
+
+None. `bridge::optional<T>` matches `std::optional<T>` exactly under
+passthrough, and the polyfill path adds only the three monadic methods
+on top of public inheritance from the real `std::optional<T>` --
+everything else (comparisons, accessors, `emplace`, `reset`, ...) is
+`std::optional<T>`'s own behavior, unmodified.
+
+## Passthrough
+
+Deck selects between passthrough and polyfill on
+`BRIDGE_RIVETS_FEATURES_LIB_OPTIONAL >= 202110L` (the Feature Test
+value for `std::optional`'s monadic methods, [P0798](https://en.cppreference.com/w/cpp/feature_test)).
+See [ADR-0008](https://github.com/tokuchan/bridge/blob/master/docs/adr/0008-best-effort-head-standard.md)
+for the "behaviorally indistinguishable" bar this selection has to
+clear, and CONTEXT.md for how this shape (free functions added onto an
+existing STL type) differs from `expected`'s (a full class Truss owns
+outright) and `format`'s (a complete function-based facility). (ADR and
+CONTEXT.md links here point at the repository on GitHub, not this
+generated site -- they aren't part of Doxygen's input.)
 
 <!-- BRIDGE-DOCS:BEGIN symbols -->
 | Symbol | Kind | Brief | cppreference |
