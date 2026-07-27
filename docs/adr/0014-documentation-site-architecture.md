@@ -141,11 +141,13 @@ Every promoted symbol's own doc comment gets an `@see` line to its
 facility's cppreference.com URL (one URL per facility, pulled from the
 same registry entry the table uses -- not duplicated by hand per
 symbol), and the facility page's generated table repeats that same
-link on every row. Applied retroactively to `optional`, `expected`,
-and `format`/`print` -- the three facilities that existed before this
-ADR -- matching the precedent ADR-0011 set for its divergence-note
-policy: fix the gap between old and new facilities rather than leaving
-a permanent, silently-inconsistent split.
+link on every row -- as compact link *text* (`` `<header>::name` ``,
+see "Compact cppreference stubs" below), not the full URL spelled out.
+Applied retroactively to `optional`, `expected`, and `format`/`print`
+-- the three facilities that existed before this ADR -- matching the
+precedent ADR-0011 set for its divergence-note policy: fix the gap
+between old and new facilities rather than leaving a permanent,
+silently-inconsistent split.
 
 `format-print` is the one facility with a real simplification here:
 `print`/`println` have their own separate cppreference page
@@ -196,6 +198,89 @@ skimmable in a PR diff or a repo browse) -- Doxygen-specific markup
 would render as stray literal text there, a real cost for a purely
 cosmetic gain in page-ID friendliness.
 
+### A uniform Synopsis/Example/Divergences/Passthrough template, not freehand prose
+
+Every facility page's hand-written region follows the same four
+sections, in order: **Synopsis** (one or two sentences on what the
+facility is), **Example** (a runnable snippet, shown before the
+passthrough/gating mechanics -- "show, don't tell"), **Divergences**
+(terse bullets pulled from the facility's own ADR, not re-explained
+inline), **Passthrough** (the Feature Test gate and the
+Truss-owns/Deck-selects split). The generated `headers`/`symbols`
+blocks stay exactly where they were, after this hand-written region.
+
+Rivets' three facilities (`detectors`, `feature-tests`, `diagnostics`)
+and `version` don't fit **Divergences**/**Passthrough** as written --
+there's no real `std::` counterpart for a Detector or a Feature Test to
+diverge from, and Diagnostics/Feature Tests *are* the mechanism other
+pages' Passthrough sections reference, not something with a passthrough
+selection of their own. Those four pages collapse the last two sections
+into one **Notes** section covering the same ground instead of forcing
+a section that doesn't apply -- adapting the template's intent (terse,
+structured, reference-manual) rather than its literal four-heading
+shape onto a facility whose shape doesn't match `optional`/`expected`/
+`format`/`span`'s STL-mirroring one.
+
+Each Example is a single hand-written snippet (matching cppreference's
+own one-example-per-page norm, not one per symbol), verified by hand to
+compile and run correctly against this project's own headers -- for the
+four STL-mirroring facilities, checked under both the polyfill standard
+(`-std=c++17` or the facility's own floor) and the passthrough standard,
+confirming the same example genuinely demonstrates both paths. This
+manual verification is a placeholder for the automated compile-check
+gate a future Godbolt/Compiler-Explorer integration is expected to add;
+not yet enforced by `./bridge docs` itself.
+
+### Source `@brief` comments get a concision pass, project-wide
+
+Every promoted symbol's `@brief` -- across Truss, Deck, and Rivets --
+is a single terse sentence: what the symbol is or does, full stop.
+Doxygen's own brief/detail split already does the work: a `///`
+comment's `@brief` scope ends at the first blank `///` line, with
+everything after auto-becoming `<detaileddescription>` with no
+`@details` command needed. Implementation reasoning, probe-verification
+notes ("confirmed via probe, not assumed"), and historical asides
+("added in a follow-up commit") move past that blank line instead of
+living in the brief -- they're still there for a reader who opens the
+full symbol page, just no longer bloating the one line a hover tooltip
+or this page's generated table shows. Most of this turned out to be
+inserting a blank line at the right spot in an already-well-written
+comment, not rewriting prose from scratch -- confirmed by inspecting
+Doxygen's own XML output directly before assuming the scope of this
+work, which was significantly narrower than initially feared.
+
+### Compact cppreference stubs and Markdown-rendered briefs in the generated table
+
+Two refinements to the `symbols` block's rendering, both implemented in
+`scripts/docs-pages.py`:
+
+- **The registry gains an explicit `header:` field** -- the real C++
+  standard header a facility mirrors (e.g. `<optional>`, `<span>`,
+  `<version>`), nullable for facilities with no real std:: mirror
+  (`detectors`, `diagnostics`, `version`). This is *not* derived from
+  the `cppreference` URL's own path categorization: that path often
+  doesn't match the symbol's actual header (`std::format`'s
+  cppreference path says "utility", its real header is `<format>`).
+  `header:` renders as the table's link text (`` `<header>::name` ``
+  instead of the full URL spelled out, giving the table more room,
+  especially on mobile) and as a prominent link right before each
+  page's Synopsis, for any facility that mirrors a real STL header.
+  `feature-tests`' header is `<version>` (the real C++20 header
+  exposing every `__cpp_lib_*` macro) -- not null. `format-print` keeps
+  its existing disclosed one-header simplification (`<format>`, even
+  though `print`/`println` really live in `<print>`).
+- **The Brief column reconstructs Markdown from Doxygen's XML
+  structure** instead of flattening `<briefdescription>` via
+  `itertext()`. Doxygen already parses `` `code` ``/`**bold**`/`*em*`
+  written in the original `///` comment into structured XML
+  (`<computeroutput>`, `<bold>`, `<emphasis>`) during its own Markdown
+  pass; the previous flatten-everything approach threw that structure
+  away and left escaped literal `&lt;`/`&gt;` in its place. The
+  generator now walks the XML directly, re-emitting real Markdown code
+  spans/bold/emphasis, with the existing `#`/`<`/`>` autolink-escaping
+  applied only to text *outside* a code span (inside one, those
+  characters render literally, same as any Markdown code span).
+
 ## Consequences
 
 - `python3` (with `pyyaml` via `python3.withPackages`, not `uv`) joins
@@ -236,3 +321,23 @@ cosmetic gain in page-ID friendliness.
   out to a GitHub blob URL -- existing facility pages still use the
   GitHub-URL form from when this ADR first shipped; migrating them to
   in-site links is incremental cleanup, not required by this change.
+- Every facility gains a `header:` registry field alongside
+  `cppreference:`; the two are independent and can point at different
+  things (`format-print`'s `cppreference` and `header` both keep the
+  same one-header simplification, but nothing in the schema *requires*
+  that -- a future facility with a real per-symbol header split could
+  set them differently).
+- `scripts/docs-pages.py`'s `brief_text()` now depends on Doxygen's
+  specific XML shape for inline markup (`<computeroutput>`, `<bold>`,
+  `<emphasis>`) rather than just its text content -- a Doxygen upgrade
+  that changes how it represents inline Markdown in
+  `<briefdescription>` would need a corresponding update here, the same
+  coupling the XML-based `symbols` block already had to Doxygen's
+  compound/memberdef shape.
+- The four Rivets/version pages' **Notes** section is a deliberate,
+  documented deviation from the four-heading template applied to every
+  other facility -- a future facility should default to the full
+  Synopsis/Example/Divergences/Passthrough shape and only collapse to
+  Notes if it genuinely has no real std:: counterpart and no
+  passthrough selection of its own, not as a shortcut for "this page is
+  short."

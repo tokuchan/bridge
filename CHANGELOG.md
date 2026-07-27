@@ -142,6 +142,30 @@ Versions are CalVer: `YY.MM.MICRO` (see docs/adr/0005-calver-versioning.md).
   cross their real thresholds at different standards, so they get
   independent Feature Tests rather than one shared gate.
 
+### Changed
+- Every generated documentation page rewritten to a uniform
+  Synopsis/Example/Divergences/Passthrough reference-manual template
+  (Rivets' three facilities and `version` use a Notes section in place
+  of Divergences/Passthrough, which don't apply to them). Each page now
+  has one hand-written example, verified by hand to compile and run
+  correctly -- for the four STL-mirroring facilities, under both the
+  polyfill and passthrough standards.
+- Every promoted symbol's `@brief` comment rewritten for concision,
+  project-wide: implementation reasoning and probe-verification notes
+  moved past Doxygen's brief/detail blank-line split instead of
+  bloating the one line a hover tooltip or the generated table shows.
+- The generated table's cppreference column now shows a compact
+  `` `<header>::name` `` stub instead of the full URL, sourced from a
+  new `header:` field in `docs/pages/registry.yaml` (the facility's
+  real C++ standard header, not derived from the `cppreference` URL's
+  own path categorization). The same field renders a prominent link
+  right before each page's Synopsis.
+- The table's Brief column now reconstructs real Markdown (code spans,
+  bold, emphasis) from Doxygen's own XML structure, instead of
+  flattening it to plain text with escaped literal `&lt;`/`&gt;`.
+
+See docs/adr/0014's amendment for the full rationale behind each.
+
 ### Fixed
 - `bridge::expected`'s polyfill path now surfaces its two
   already-shipped silent divergences from real `std::expected`
