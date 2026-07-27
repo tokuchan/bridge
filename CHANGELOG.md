@@ -7,6 +7,21 @@ Versions are CalVer: `YY.MM.MICRO` (see docs/adr/0005-calver-versioning.md).
 ## [Unreleased]
 
 ### Added
+- Truss's `std::span<T, Extent>` polyfill, in a new
+  `include/truss/cpp17/span.hpp`: a from-scratch class (docs/adr/0015),
+  full static+dynamic extent parity (including the storage-layout
+  difference and the exact static/dynamic conversion rules -- the
+  converting constructor's conditional `explicit`-ness is reproduced
+  exactly via two SFINAE-selected overloads, not an `expected`-style
+  always-explicit fallback), named-case container constructors
+  (pointer+count, iterator pair, C array, `std::array`, `std::vector`,
+  `std::string`), `first`/`last`/`subspan` (both the compile-time and
+  runtime forms, matching real `std::span`'s dual return-type
+  behavior), and `as_bytes`/`as_writable_bytes`. New
+  `BRIDGE_RIVETS_FEATURES_LIB_SPAN` Feature Test
+  (`include/rivets/features.hpp`), empirically confirmed at `202002L`
+  from C++20 onward on both GCC and Clang. Deck's alias-selection
+  (`include/deck/cpp17/span.hpp`) lands in a follow-up commit.
 - Deck's `print`/`println` alias-selection, in a new
   `include/deck/cpp17/print.hpp`: resolves to real `std::print`/
   `std::println` once `BRIDGE_RIVETS_FEATURES_LIB_PRINT` confirms

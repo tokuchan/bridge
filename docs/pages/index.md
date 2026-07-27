@@ -44,5 +44,6 @@ not necessarily one page per header:
 - \ref page_feature_tests "Feature Tests"
 - \ref page_format_print "Format Print"
 - \ref page_optional "Optional"
+- \ref page_span "Span"
 - \ref page_version "Version"
 <!-- BRIDGE-DOCS:END -->

@@ -54,7 +54,26 @@ indistinguishable" bar:
   fixed-extent span when the result size is known at compile time; the
   *runtime* forms (`first(n)`, `last(n)`, `subspan(offset, count)`)
   always return `span<T, dynamic_extent>`, even when called on a
-  fixed-extent span — confirmed via `static_assert` against real
+  fixed-extent span. Confirmed via `static_assert` against real
+  `std::span` in each case, not assumed from the standard's prose
+  alone.
+
+  The converting constructor's `explicit`-ness needed its own
+  probe-then-fix cycle: real `std::span` is
+  `explicit(Extent != dynamic_extent && OtherExtent == dynamic_extent)`
+  (explicit only when narrowing from an unknown-at-compile-time source
+  extent to a known one), which needs
+  C++20's conditional `explicit(bool)` to express directly. Reproduced
+  exactly — not an `expected`-style always-explicit fallback — via two
+  separate constructor templates, one plain and one `explicit`, each
+  SFINAE-enabled on the opposite half of the same condition; found
+  during implementation that the SFINAE has to live on an extra
+  defaulted *function* parameter rather than a defaulted template type
+  parameter, since two constructor templates with an otherwise-identical
+  template-parameter-list shape are rejected as "cannot be overloaded"
+  even when their `enable_if` conditions differ (hit that exact
+  compiler error before settling on this shape, not assumed).
+  Likewise for
   `std::span` for both forms before writing the polyfill's own
   versions. The default constructor is conditionally available only
   when `Extent == dynamic_extent || Extent == 0`, matching the real
