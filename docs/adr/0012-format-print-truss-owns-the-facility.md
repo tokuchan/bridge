@@ -44,13 +44,23 @@ not lump them together.
 `format.hpp`, never into whichever `format` Deck happened to select —
 uniform with `expected`'s "Truss never passes through" rule, applied
 across two features that Truss itself composes internally, not just
-within one. This was explicitly raised as an open question during
-design (a C++20-but-pre-C++23 ecosystem has native `format` `print`
-could theoretically borrow for efficiency) and confirmed provisional
-pending a benchmark before being treated as locked in; if a
-follow-up benchmark finds a meaningful performance gap, that's grounds
-to revisit this specific rule via its own follow-up, not a standing
-exception baked in without measurement.
+within one.
+
+This was explicitly raised as an open question during design (a
+C++20-but-pre-C++23 ecosystem has native `format` `print` could
+theoretically borrow for efficiency) and left provisional pending a
+benchmark before being treated as locked in. The benchmark: a
+representative print-shaped workload (a mixed-type format string —
+int, float with precision, string, hex) run 200,000 times through both
+Truss's own `format` and native `std::format`, under `-O2`, on both
+GCC and Clang, each compiler's numbers checked across three runs for
+consistency. Result: Truss's polyfill is consistently **~15–30%
+slower** per call (roughly 30–40ns of actual difference, both paths
+well under 200ns total) — a real, measurable, but modest gap, not the
+order-of-magnitude difference that would justify a carved-out
+exception to an architectural invariant applied consistently
+everywhere else in this codebase. **Confirmed final**: `print` always
+uses Truss's own `format`, unconditionally.
 
 ### Scope
 
