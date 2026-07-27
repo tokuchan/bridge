@@ -5,7 +5,7 @@ target_include_directories(truss INTERFACE
     $<BUILD_INTERFACE:${BRIDGE_INCLUDE_DIR}>
     $<INSTALL_INTERFACE:include>
 )
-target_link_libraries(truss INTERFACE bridge::rivets)
+target_link_libraries(truss INTERFACE bridge::rivets Threads::Threads)
 target_compile_features(truss INTERFACE cxx_std_17)
 
 if(BRIDGE_HAS_BOOST)

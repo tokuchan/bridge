@@ -42,6 +42,13 @@ else()
     set(BRIDGE_HAS_BOOST OFF)
 endif()
 
+# std::jthread/std::thread need a real threading library -- unconditional,
+# unlike Boost's opt-in BRIDGE_WITH_BOOST: a system threading library is
+# essentially universal on any target this project supports (docs/adr/0017),
+# not a heavy third-party dependency worth gating behind its own flag.
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
+
 add_subdirectory(include/rivets)
 add_subdirectory(include/truss)
 add_subdirectory(include/deck)

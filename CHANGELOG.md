@@ -7,6 +7,16 @@ Versions are CalVer: `YY.MM.MICRO` (see docs/adr/0005-calver-versioning.md).
 ## [Unreleased]
 
 ### Added
+- `Threads::Threads` (CMake's `FindThreads`) now links unconditionally
+  on `truss` (and transitively `deck`), the first real system-library
+  link dependency either has had -- needed for the upcoming
+  `jthread`/`stop_token` backport. Unconditional rather than gated
+  behind a new opt-in flag (unlike Boost's `BRIDGE_WITH_BOOST`): a
+  system threading library is essentially universal on any target this
+  project supports. Confirmed the link still resolves cleanly on this
+  project's own toolchain, where modern glibc folds pthread into libc
+  itself (`Threads::Threads` correctly adds no extra flag here, rather
+  than assuming `-pthread`/`-lpthread` is always needed).
 - `rivets/features.hpp`: `__cpp_lib_jthread` and `__cpp_lib_stop_token`
   Feature Tests (`bridge::rivets::features::lib_jthread`/
   `lib_stop_token`), first step toward the `jthread`/`stop_token`
