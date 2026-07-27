@@ -7,6 +7,24 @@ Versions are CalVer: `YY.MM.MICRO` (see docs/adr/0005-calver-versioning.md).
 ## [Unreleased]
 
 ### Added
+- Deck's `print`/`println` alias-selection, in a new
+  `include/deck/cpp17/print.hpp`: resolves to real `std::print`/
+  `std::println` once `BRIDGE_RIVETS_FEATURES_LIB_PRINT` confirms
+  native support, independently of `format.hpp`'s own gate, or to
+  Truss's polyfill otherwise. Both the `FILE*`-targeting and
+  `ostream`-targeting overload families passthrough cleanly -- real
+  `std::print`/`std::println` provide both (confirmed by compiler
+  probe), not just the `FILE*` family, so there's nothing
+  bridge-specific to reconcile between the two paths here, unlike
+  `formatter<T>`.
+- `tests/deck/cpp17/format_differential_test.cpp` and
+  `print_differential_test.cpp`: compare `bridge::truss::format`/
+  `print` against real `std::format`/`std::print` directly in the same
+  translation unit (possible since Truss never passes through), plus a
+  user-defined type with both `formatter<T>` specializations
+  (`bridge::truss::formatter<point>` and `std::formatter<point>`)
+  formatting correctly through each engine -- the concrete test
+  `docs/adr/0012`'s dual-specialization disclosure exists to back up.
 - Deck's `format` alias-selection, in a new `include/deck/cpp17/format.hpp`:
   `bridge::format`/`format_to`/`format_to_n`/`formatted_size`/`vformat`
   and their companion types (`format_error`, `format_parse_context`,
