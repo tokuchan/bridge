@@ -9,6 +9,16 @@ Header-only libraries, usable from C++17 onward:
   compilers, or STLs that lack them, built on Rivets' detection.
 - **deck** — higher-level utilities built on top of Truss.
 
+## Documentation
+
+The full generated site — a cppreference-inspired index, one page per
+conceptual facility (not just per header), and full symbol
+documentation — is browsable at
+<https://tokuchan.github.io/bridge/>. See
+[docs/adr/0014](docs/adr/0014-documentation-site-architecture.md) for
+how it's built. To build it locally instead: `./bridge docs` (output
+under `build/docs/html`).
+
 ## Quick Start
 
 ```sh
