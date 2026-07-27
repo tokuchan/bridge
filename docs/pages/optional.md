@@ -5,7 +5,24 @@
 - `include/deck/cpp17/optional.hpp`
 <!-- BRIDGE-DOCS:END -->
 
-TODO: narrative prose for this facility.
+`std::optional<T>` itself has existed since C++17, so unlike `expected`
+or `format`, Truss has nothing to build from scratch here -- Truss owns
+only the *monadic* methods (`and_then`, `or_else`, `transform`) that
+arrived later, in C++23, as plain free functions operating on a real
+`std::optional<T>` (`bridge::truss::and_then(opt, f)`, never a wrapper
+type). Deck then owns `bridge::optional<T>`: a thin class publicly
+inheriting `std::optional<T>` and adding those same three operations as
+real member methods, so it reads and behaves exactly like the C++23
+type regardless of which standard is actually active underneath. See
+[ADR-0008](https://github.com/tokuchan/bridge/blob/master/docs/adr/0008-best-effort-head-standard.md)
+for the "behaviorally indistinguishable" bar this has to clear, and
+CONTEXT.md for how this shape (free functions on an existing STL type)
+differs from `expected`'s (a full class Truss owns outright) and
+`format`'s (a complete function-based facility) -- three different
+answers to the same underlying question, "what does Truss actually
+need to build." (ADR and CONTEXT.md links here point at the repository
+on GitHub, not this generated site -- they aren't part of Doxygen's
+input.)
 
 <!-- BRIDGE-DOCS:BEGIN symbols -->
 | Symbol | Kind | Brief | cppreference |

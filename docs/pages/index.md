@@ -15,12 +15,11 @@ down for quick lookup.
 
 ## Rivets -- detection
 
-\subpage page_rivets "Rivets: the sparse Cartesian product" ties together
-Rivets' three facilities:
-
-- \subpage page_detectors
-- \subpage page_feature_tests
-- \subpage page_diagnostics
+\subpage page_rivets "Rivets: the sparse Cartesian product" ties
+together Rivets' three facilities (\ref page_detectors, \ref
+page_feature_tests, \ref page_diagnostics -- linked from there, not
+`\subpage`d a second time here, since a page can only have one
+`\subpage` parent).
 
 ## Truss/Deck -- polyfilled facilities
 

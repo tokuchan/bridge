@@ -5,7 +5,15 @@
 - `include/deck/cpp17/version.hpp`
 <!-- BRIDGE-DOCS:END -->
 
-TODO: narrative prose for this facility.
+Plain library version metadata for Truss and Deck themselves -- not a
+detection or polyfill facility, and not tied to any `std::` equivalent.
+Doesn't fit naturally under any of the other six facilities, so it gets
+its own small one here rather than being shoehorned into `optional` or
+`expected` just because it happens to be a small header. See
+[ADR-0005](https://github.com/tokuchan/bridge/blob/master/docs/adr/0005-calver-versioning.md)
+for how these numbers relate to the project's actual CalVer release
+versioning (they're independent: this is Truss's/Deck's own internal
+version metadata, not the release version a package manager would see).
 
 <!-- BRIDGE-DOCS:BEGIN symbols -->
 | Symbol | Kind | Brief |

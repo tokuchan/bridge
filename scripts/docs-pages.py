@@ -46,6 +46,16 @@ BLOCK_END = "<!-- BRIDGE-DOCS:END -->"
 # from the same detail namespace.
 PROMOTION_RE = re.compile(r"using\s+bridge::detail::[\w:]+::(\w+)\s*;")
 
+# Matches a Truss/Deck detail-namespace prefix (bridge::detail::truss::
+# cpp17::<facility> or bridge::detail::deck::cpp17::<facility>) --
+# collect_symbols() uses this to decide whether a symbol's local name
+# alone is enough to identify it (true here, since it's part of the
+# tiered promotion chain) or whether its enclosing namespace has to
+# stay part of the display name too (Rivets' flat, untiered
+# namespaces, where the same local name is deliberately reused per
+# Entity).
+TIERED_NAMESPACE_RE = re.compile(r"^bridge::detail::(truss|deck)::cpp17::\w+(::exports)?$")
+
 
 def load_registry():
     with open(REGISTRY_PATH) as f:
@@ -110,7 +120,34 @@ def collect_symbols(headers):
             return False
         return (not promoted) or (name in promoted)
 
-    results = {}  # name -> (kind, brief)
+    results = {}  # display_name -> (kind, brief)
+
+    def display_name(namespace_prefix, local):
+        # Truss/Deck's tiered facilities (docs/adr/0001) legitimately
+        # define the "same" public symbol twice -- Truss's real
+        # definition, plus Deck's thin alias-selection re-declaration
+        # (docs/adr/0014) -- and those should collapse to one row keyed
+        # on the bare local name (see add_result below). Rivets'
+        # facilities have no such tiering: `eq`/`ge`/`gt`/etc. are
+        # deliberately reused *local* names across genuinely distinct
+        # per-Entity namespaces (bridge::rivets::clang::eq is not the
+        # same symbol as bridge::rivets::gcc::eq), so those need the
+        # namespace kept in the display name or they'd wrongly collide.
+        if TIERED_NAMESPACE_RE.match(namespace_prefix or ""):
+            return local
+        return f"{namespace_prefix}::{local}" if namespace_prefix else local
+
+    def add_result(name, kind, brief):
+        # A name can legitimately show up twice: Truss defines the
+        # real thing (class/struct/function/enum), Deck's own
+        # alias-selection header (docs/adr/0014) re-declares the
+        # same name as a thin, separately-documented alias
+        # ("typedef" in Doxygen's XML) pointing at whichever engine
+        # is selected. Prefer the substantive definition over the
+        # alias when both exist, regardless of XML processing order.
+        existing = results.get(name)
+        if existing is None or (existing[0] == "typedef" and kind != "typedef"):
+            results[name] = (kind, brief)
 
     for xml_file in sorted(XML_DIR.glob("*.xml")):
         if xml_file.name == "index.xml":
@@ -124,29 +161,19 @@ def collect_symbols(headers):
             continue
         kind = compounddef.get("kind")
 
-        def add_result(name, kind, brief):
-            # A name can legitimately show up twice: Truss defines the
-            # real thing (class/struct/function/enum), Deck's own
-            # alias-selection header (docs/adr/0014) re-declares the
-            # same name as a thin, separately-documented alias
-            # ("typedef" in Doxygen's XML) pointing at whichever engine
-            # is selected. Prefer the substantive definition over the
-            # alias when both exist, regardless of XML processing order.
-            existing = results.get(name)
-            if existing is None or (existing[0] == "typedef" and kind != "typedef"):
-                results[name] = (kind, brief)
-
         if kind in ("class", "struct", "union"):
             loc = compounddef.find("location")
             if loc is None or loc.get("file") not in header_abs:
                 continue
             raw_name = compounddef.findtext("compoundname") or ""
-            local = strip_template_args(raw_name.rsplit("::", 1)[-1])
+            prefix, _, local_raw = raw_name.rpartition("::")
+            local = strip_template_args(local_raw)
             if not is_promoted(loc.get("file"), local):
                 continue
-            add_result(local, kind, brief_text(compounddef))
+            add_result(display_name(prefix, local), kind, brief_text(compounddef))
 
         elif kind in ("namespace", "file"):
+            namespace_prefix = compounddef.findtext("compoundname") or ""
             for md in compounddef.iter("memberdef"):
                 loc = md.find("location")
                 if loc is None or loc.get("file") not in header_abs:
@@ -160,7 +187,7 @@ def collect_symbols(headers):
                     continue
                 if not is_promoted(loc.get("file"), name):
                     continue
-                add_result(name, mkind, brief_text(md))
+                add_result(display_name(namespace_prefix, name), mkind, brief_text(md))
 
     return [
         {"name": n, "kind": k, "brief": b}
