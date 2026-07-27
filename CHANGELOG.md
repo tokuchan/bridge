@@ -7,6 +7,21 @@ Versions are CalVer: `YY.MM.MICRO` (see docs/adr/0005-calver-versioning.md).
 ## [Unreleased]
 
 ### Added
+- Truss's built-in `formatter<T>` specializations: integer types,
+  `bool`, `char`, floating point, pointers (`void*`/`const void*`/
+  `nullptr_t`), and the string family (`const char*`/`char*`/
+  `std::string`/`std::string_view`), including the C++23 `?` debug
+  format for strings and `char`. Built on `std::to_chars` (a real
+  C++17 facility) for the actual numeric conversion rather than a
+  hand-rolled algorithm. Verified against real `std::format` directly
+  throughout development: individual probes for each formatter plus a
+  ~200-combination batch differential check (every built-in formatter
+  crossed with representative specs), all matching exactly -- this is
+  also where the printf-style "precision defaults to 6 when a
+  presentation type is given but no explicit precision" rule for
+  `f`/`e`/`g` was confirmed (the type-less default instead uses
+  `to_chars`' own shortest-round-trip behavior, a real and
+  easy-to-miss distinction).
 - Truss's `format`/`print` polyfill begins: `format_error`,
   `format_parse_context`, `format_context<OutIt>`, and the disabled-by-
   default `formatter<T>` customization point, in a new

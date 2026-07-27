@@ -24,7 +24,10 @@
 /// facility is available. That selection happens exactly once, in Deck.
 #pragma once
 
+#include <charconv>
+#include <cmath>
 #include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <stdexcept>
 #include <string>
@@ -464,6 +467,538 @@ struct formatter {
     /// @brief Deleted: `T` has no `formatter` specialization.
     /// @return Never returns; deleted.
     formatter& operator=(const formatter&) = delete;
+};
+
+/// @brief Resolves a `width_or_precision` using a live
+///        `format_context`'s dynamic-argument access, for callers that
+///        only have a context (not a standalone `dynamic_arg_source`)
+///        at hand. See the `dynamic_arg_source` overload for the
+///        precondition and error behavior.
+/// @tparam OutIt The context's output iterator type.
+/// @param wp The parsed width/precision.
+/// @param ctx The context to resolve a dynamic reference against.
+/// @return The resolved value.
+template <class OutIt>
+std::size_t resolve_width_or_precision(const width_or_precision& wp, const format_context<OutIt>& ctx) {
+    if (wp.k == width_or_precision::kind::literal) return wp.value;
+    long long v = ctx.arg_as_dynamic(wp.value);
+    if (v < 0) throw format_error("negative width/precision from a dynamic argument");
+    return static_cast<std::size_t>(v);
+}
+
+/// \cond BRIDGE_DETAIL
+///
+/// Shared field-writing helpers used by every built-in formatter below
+/// -- pure implementation plumbing, never part of the public API.
+/// Excluded from the documentation-coverage gate for the same reason
+/// as the layered-base machinery in truss/cpp17/expected.hpp: writing
+/// full docs for internal helpers with no reader-facing value.
+namespace field_writers {
+
+/// @brief Writes `prefix` then `digits`, applying width padding.
+///        Honors the "numeric zero-pad" rule: when `spec.zero_pad` is
+///        set and no explicit alignment was given, padding zeros go
+///        *between* `prefix` and `digits` (so `-0007`, `0x0000ff`, not
+///        `000-7`); otherwise padding follows normal fill/align rules
+///        with a numeric (right) default alignment. Matches real
+///        `std::format`'s behavior for arithmetic types, verified
+///        against it directly (not derived from the standard text
+///        alone) for every combination this polyfill supports.
+template <class OutIt>
+void write_numeric_field(format_context<OutIt>& ctx, std::string_view prefix, std::string_view digits,
+                          const parsed_std_spec& spec) {
+    std::size_t width =
+        spec.width.k == width_or_precision::kind::none ? 0 : resolve_width_or_precision(spec.width, ctx);
+    std::size_t content_len = prefix.size() + digits.size();
+    auto out = ctx.out();
+    if (spec.zero_pad && spec.align == align_t::none) {
+        for (char c : prefix) *out++ = c;
+        if (width > content_len) {
+            for (std::size_t i = 0; i < width - content_len; ++i) *out++ = '0';
+        }
+        for (char c : digits) *out++ = c;
+        ctx.advance_to(out);
+        return;
+    }
+    align_t align = spec.align == align_t::none ? align_t::right : spec.align;
+    std::size_t pad = width > content_len ? width - content_len : 0;
+    std::size_t left = align == align_t::left ? 0 : align == align_t::right ? pad : pad / 2;
+    std::size_t right = pad - left;
+    for (std::size_t i = 0; i < left; ++i) *out++ = spec.fill;
+    for (char c : prefix) *out++ = c;
+    for (char c : digits) *out++ = c;
+    for (std::size_t i = 0; i < right; ++i) *out++ = spec.fill;
+    ctx.advance_to(out);
+}
+
+/// @brief Writes `content` (already precision-truncated by the
+///        caller, if applicable), applying width padding with a
+///        string-like (left) default alignment.
+template <class OutIt>
+void write_string_field(format_context<OutIt>& ctx, std::string_view content, const parsed_std_spec& spec) {
+    std::size_t width =
+        spec.width.k == width_or_precision::kind::none ? 0 : resolve_width_or_precision(spec.width, ctx);
+    align_t align = spec.align == align_t::none ? align_t::left : spec.align;
+    std::size_t pad = width > content.size() ? width - content.size() : 0;
+    std::size_t left = align == align_t::left ? 0 : align == align_t::right ? pad : pad / 2;
+    std::size_t right = pad - left;
+    auto out = ctx.out();
+    for (std::size_t i = 0; i < left; ++i) *out++ = spec.fill;
+    for (char c : content) *out++ = c;
+    for (std::size_t i = 0; i < right; ++i) *out++ = spec.fill;
+    ctx.advance_to(out);
+}
+
+/// @brief Applies precision-as-max-length truncation to `content`, if
+///        `spec` has a precision. Byte-based, not Unicode-display-
+///        column-based -- docs/adr/0012's disclosed approximation for
+///        multi-byte UTF-8 content.
+inline std::string_view truncate_to_precision(std::string_view content, const parsed_std_spec& spec,
+                                               std::size_t resolved_precision) {
+    if (spec.precision.k == width_or_precision::kind::none) return content;
+    return content.substr(0, std::min(content.size(), resolved_precision));
+}
+
+/// @brief Debug-format (`?`) escaping for a single character, appended
+///        to `out`. Handles `"`, `\`, and the common C escapes
+///        (`\n`/`\t`/`\r`); other non-printable bytes become `\xHH`.
+///        An ASCII-only approximation of real `std::format`'s
+///        Unicode-aware escaping, matching this polyfill's byte-based
+///        (not grapheme-based) approach throughout.
+inline void append_debug_escaped(std::string& out, char c, char quote) {
+    if (c == quote || c == '\\') {
+        out += '\\';
+        out += c;
+    } else if (c == '\n') {
+        out += "\\n";
+    } else if (c == '\t') {
+        out += "\\t";
+    } else if (c == '\r') {
+        out += "\\r";
+    } else if (static_cast<unsigned char>(c) < 0x20 || c == 0x7f) {
+        char buf[5];
+        std::snprintf(buf, sizeof(buf), "\\x%02x", static_cast<unsigned char>(c));
+        out += buf;
+    } else {
+        out += c;
+    }
+}
+
+} // namespace field_writers
+/// \endcond
+
+/// @brief True for the integer types this polyfill formats generically
+///        (matching `std::formatter`'s integer specializations):
+///        everything `std::is_integral_v`, except `bool` and `char`
+///        (each formatted differently by their own dedicated
+///        specializations below) and the wide/Unicode character types
+///        (out of scope, docs/adr/0012).
+template <class T>
+inline constexpr bool is_formattable_integral_v =
+    std::is_integral_v<T> && !std::is_same_v<T, bool> && !std::is_same_v<T, char> &&
+    !std::is_same_v<T, wchar_t> && !std::is_same_v<T, char16_t> && !std::is_same_v<T, char32_t>;
+
+/// \cond BRIDGE_DETAIL
+namespace field_writers {
+
+/// @brief Core integer-formatting logic shared by `formatter<T>` for
+///        integer types and the numeric-presentation branches of
+///        `formatter<bool>`/`formatter<char>`, so none of the three
+///        duplicate it. Not a formatter itself: takes the already-
+///        decomposed sign and unsigned magnitude directly, since
+///        bool/char's numeric paths don't have a signed value to
+///        decompose from in the same way a real integer type does.
+template <class OutIt, class U>
+void write_integer_value(format_context<OutIt>& ctx, bool negative, U uval, const parsed_std_spec& spec) {
+    char type = spec.type ? spec.type : 'd';
+
+    std::string prefix;
+    if (negative) {
+        prefix += '-';
+    } else if (spec.sign == sign_t::plus) {
+        prefix += '+';
+    } else if (spec.sign == sign_t::space) {
+        prefix += ' ';
+    }
+
+    int base = 10;
+    switch (type) {
+    case 'b':
+        base = 2;
+        if (spec.alt) prefix += "0b";
+        break;
+    case 'B':
+        base = 2;
+        if (spec.alt) prefix += "0B";
+        break;
+    case 'o':
+        base = 8;
+        if (spec.alt && uval != 0) prefix += "0";
+        break;
+    case 'x':
+        base = 16;
+        if (spec.alt) prefix += "0x";
+        break;
+    case 'X':
+        base = 16;
+        if (spec.alt) prefix += "0X";
+        break;
+    default:
+        base = 10;
+        break;
+    }
+
+    char buf[80];
+    auto res = std::to_chars(buf, buf + sizeof(buf), uval, base);
+    std::string digits(buf, res.ptr);
+    if (type == 'X') {
+        for (auto& c : digits) {
+            if (c >= 'a' && c <= 'z') c = static_cast<char>(c - ('a' - 'A'));
+        }
+    }
+
+    write_numeric_field(ctx, prefix, digits, spec);
+}
+
+} // namespace field_writers
+/// \endcond
+
+/// @brief `formatter<T>` for integer types (matching real
+///        `std::formatter`'s integer specializations): presentation
+///        types `d` (default), `b`/`B`, `o`, `x`/`X`. Precision isn't
+///        valid for integers, matching real `std::format` (confirmed
+///        by hitting its actual compile-time rejection of
+///        `"{:.2}"` against an `int` argument, not assumed).
+template <class T>
+struct formatter<T, std::enable_if_t<is_formattable_integral_v<T>>> {
+    /// @brief Parses the format-spec.
+    /// @param pctx The parse context.
+    /// @return An iterator to the field's closing `}`.
+    format_parse_context::iterator parse(format_parse_context& pctx) {
+        spec_ = parse_std_spec(pctx, "dbBoxX");
+        if (spec_.precision.k != width_or_precision::kind::none) {
+            throw format_error("precision is not valid for integer types");
+        }
+        return pctx.begin();
+    }
+
+    /// @brief Formats `value` into `ctx`.
+    /// @tparam FormatContext The context type (any `format_context<OutIt>`).
+    /// @param value The value to format.
+    /// @param ctx The output context.
+    /// @return `ctx.out()` after writing.
+    template <class FormatContext>
+    auto format(T value, FormatContext& ctx) const -> typename FormatContext::iterator {
+        using U = std::make_unsigned_t<T>;
+        bool negative = false;
+        U uval;
+        if constexpr (std::is_signed_v<T>) {
+            negative = value < 0;
+            uval = negative ? static_cast<U>(0) - static_cast<U>(value) : static_cast<U>(value);
+        } else {
+            uval = value;
+        }
+        field_writers::write_integer_value(ctx, negative, uval, spec_);
+        return ctx.out();
+    }
+
+private:
+    parsed_std_spec spec_{};
+};
+
+/// @brief `formatter<bool>`: default/`s` presentation writes `"true"`/
+///        `"false"` (string-like, left-aligned by default); numeric
+///        presentations (`d`/`b`/`B`/`o`/`x`/`X`) treat it as `0`/`1`.
+///        Precision isn't valid, matching real `std::format`
+///        (confirmed by hitting its actual compile-time rejection,
+///        not assumed).
+template <>
+struct formatter<bool> {
+    /// @brief Parses the format-spec.
+    /// @param pctx The parse context.
+    /// @return An iterator to the field's closing `}`.
+    format_parse_context::iterator parse(format_parse_context& pctx) {
+        spec_ = parse_std_spec(pctx, "sdbBoxX");
+        if (spec_.precision.k != width_or_precision::kind::none) {
+            throw format_error("precision is not valid for bool");
+        }
+        return pctx.begin();
+    }
+
+    /// @brief Formats `value` into `ctx`.
+    /// @tparam FormatContext The context type (any `format_context<OutIt>`).
+    /// @param value The value to format.
+    /// @param ctx The output context.
+    /// @return `ctx.out()` after writing.
+    template <class FormatContext>
+    auto format(bool value, FormatContext& ctx) const -> typename FormatContext::iterator {
+        if (spec_.type == '\0' || spec_.type == 's') {
+            field_writers::write_string_field(ctx, value ? "true" : "false", spec_);
+            return ctx.out();
+        }
+        field_writers::write_integer_value(ctx, false, static_cast<unsigned>(value ? 1 : 0), spec_);
+        return ctx.out();
+    }
+
+private:
+    parsed_std_spec spec_{};
+};
+
+/// @brief `formatter<char>`: default/`c` presentation writes the
+///        character itself (string-like, left-aligned by default);
+///        numeric presentations (`d`/`b`/`B`/`o`/`x`/`X`) treat it as
+///        its underlying integer value; `?` (C++23 debug format) wraps
+///        it in single quotes with the same escaping
+///        `formatter<std::string>` uses -- confirmed real
+///        `std::format` supports `{:?}` for `char` too (e.g. `'x'`,
+///        `'\n'`), not just strings, before adding it here. Precision
+///        isn't valid.
+template <>
+struct formatter<char> {
+    /// @brief Parses the format-spec.
+    /// @param pctx The parse context.
+    /// @return An iterator to the field's closing `}`.
+    format_parse_context::iterator parse(format_parse_context& pctx) {
+        spec_ = parse_std_spec(pctx, "c?dbBoxX");
+        if (spec_.precision.k != width_or_precision::kind::none) {
+            throw format_error("precision is not valid for char");
+        }
+        return pctx.begin();
+    }
+
+    /// @brief Formats `value` into `ctx`.
+    /// @tparam FormatContext The context type (any `format_context<OutIt>`).
+    /// @param value The value to format.
+    /// @param ctx The output context.
+    /// @return `ctx.out()` after writing.
+    template <class FormatContext>
+    auto format(char value, FormatContext& ctx) const -> typename FormatContext::iterator {
+        if (spec_.type == '?') {
+            std::string escaped;
+            escaped += '\'';
+            field_writers::append_debug_escaped(escaped, value, '\'');
+            escaped += '\'';
+            field_writers::write_string_field(ctx, escaped, spec_);
+            return ctx.out();
+        }
+        if (spec_.type == '\0' || spec_.type == 'c') {
+            field_writers::write_string_field(ctx, std::string_view(&value, 1), spec_);
+            return ctx.out();
+        }
+        field_writers::write_integer_value(ctx, false, static_cast<unsigned char>(value), spec_);
+        return ctx.out();
+    }
+
+private:
+    parsed_std_spec spec_{};
+};
+
+/// @brief True for the floating-point types this polyfill formats
+///        (`float`, `double`, `long double`).
+template <class T>
+inline constexpr bool is_formattable_float_v = std::is_floating_point_v<T>;
+
+/// @brief `formatter<T>` for floating-point types: presentation types
+///        `f`/`F` (fixed), `e`/`E` (scientific), `g`/`G` (general),
+///        `a`/`A` (hex), or none (shortest round-trip when no
+///        precision is given either, matching `std::to_chars`'
+///        default; otherwise behaves like `g`). Built on
+///        `std::to_chars` (a real C++17 facility) for the actual
+///        numeric conversion rather than a hand-rolled algorithm --
+///        `f`/`F`/`e`/`E`/`g`/`G` default to precision 6 when no
+///        precision is given, matching `printf`'s convention; this was
+///        confirmed against real `std::format`'s actual output, not
+///        assumed from the standard text alone (it doesn't use
+///        `to_chars`' own shortest-round-trip default the way the
+///        type-less presentation does).
+template <class T>
+struct formatter<T, std::enable_if_t<is_formattable_float_v<T>>> {
+    /// @brief Parses the format-spec.
+    /// @param pctx The parse context.
+    /// @return An iterator to the field's closing `}`.
+    format_parse_context::iterator parse(format_parse_context& pctx) {
+        spec_ = parse_std_spec(pctx, "fFeEgGaA");
+        return pctx.begin();
+    }
+
+    /// @brief Formats `value` into `ctx`.
+    /// @tparam FormatContext The context type (any `format_context<OutIt>`).
+    /// @param value The value to format.
+    /// @param ctx The output context.
+    /// @return `ctx.out()` after writing.
+    template <class FormatContext>
+    auto format(T value, FormatContext& ctx) const -> typename FormatContext::iterator {
+        char type = spec_.type;
+        bool negative = std::signbit(value);
+        T abs_value = negative ? -value : value;
+
+        std::string prefix;
+        if (negative) {
+            prefix += '-';
+        } else if (spec_.sign == sign_t::plus) {
+            prefix += '+';
+        } else if (spec_.sign == sign_t::space) {
+            prefix += ' ';
+        }
+
+        bool uppercase = false;
+        std::chars_format cf = std::chars_format::general;
+        switch (type) {
+        case 'f':
+            cf = std::chars_format::fixed;
+            break;
+        case 'F':
+            cf = std::chars_format::fixed;
+            uppercase = true;
+            break;
+        case 'e':
+            cf = std::chars_format::scientific;
+            break;
+        case 'E':
+            cf = std::chars_format::scientific;
+            uppercase = true;
+            break;
+        case 'g':
+            cf = std::chars_format::general;
+            break;
+        case 'G':
+            cf = std::chars_format::general;
+            uppercase = true;
+            break;
+        case 'a':
+            cf = std::chars_format::hex;
+            break;
+        case 'A':
+            cf = std::chars_format::hex;
+            uppercase = true;
+            break;
+        default:
+            break;
+        }
+
+        bool has_precision = spec_.precision.k != width_or_precision::kind::none;
+        std::size_t precision = has_precision ? resolve_width_or_precision(spec_.precision, ctx) : 0;
+
+        char buf[512];
+        std::to_chars_result res{};
+        if (type == '\0' && !has_precision) {
+            res = std::to_chars(buf, buf + sizeof(buf), abs_value);
+        } else if ((type == 'a' || type == 'A') && !has_precision) {
+            res = std::to_chars(buf, buf + sizeof(buf), abs_value, cf);
+        } else {
+            if (!has_precision) precision = 6;
+            res = std::to_chars(buf, buf + sizeof(buf), abs_value, cf, static_cast<int>(precision));
+        }
+        std::string digits(buf, res.ptr);
+        if (uppercase) {
+            for (auto& c : digits) {
+                if (c >= 'a' && c <= 'z') c = static_cast<char>(c - ('a' - 'A'));
+            }
+        }
+
+        field_writers::write_numeric_field(ctx, prefix, digits, spec_);
+        return ctx.out();
+    }
+
+private:
+    parsed_std_spec spec_{};
+};
+
+/// @brief `formatter<T>` for pointer types (`void*`, `const void*`,
+///        `std::nullptr_t`): presentation `p` (default and only valid
+///        type) writes `0x` followed by the address in lowercase hex,
+///        no leading zeros, right-aligned by default -- confirmed
+///        against real `std::format`'s actual output (including that
+///        `nullptr` formats as `"0x0"`, not zero-padded to pointer
+///        width), not assumed. Precision isn't valid.
+template <class T>
+struct formatter<T, std::enable_if_t<std::is_same_v<T, const void*> || std::is_same_v<T, void*> ||
+                                      std::is_same_v<T, std::nullptr_t>>> {
+    /// @brief Parses the format-spec.
+    /// @param pctx The parse context.
+    /// @return An iterator to the field's closing `}`.
+    format_parse_context::iterator parse(format_parse_context& pctx) {
+        spec_ = parse_std_spec(pctx, "p");
+        if (spec_.precision.k != width_or_precision::kind::none) {
+            throw format_error("precision is not valid for pointers");
+        }
+        return pctx.begin();
+    }
+
+    /// @brief Formats `value` into `ctx`.
+    /// @tparam FormatContext The context type (any `format_context<OutIt>`).
+    /// @param value The value to format.
+    /// @param ctx The output context.
+    /// @return `ctx.out()` after writing.
+    template <class FormatContext>
+    auto format(T value, FormatContext& ctx) const -> typename FormatContext::iterator {
+        std::uintptr_t addr;
+        if constexpr (std::is_same_v<T, std::nullptr_t>) {
+            addr = 0;
+        } else {
+            addr = reinterpret_cast<std::uintptr_t>(value);
+        }
+        char buf[32];
+        auto res = std::to_chars(buf, buf + sizeof(buf), addr, 16);
+        std::string digits(buf, res.ptr);
+        field_writers::write_numeric_field(ctx, "0x", digits, spec_);
+        return ctx.out();
+    }
+
+private:
+    parsed_std_spec spec_{};
+};
+
+/// @brief `formatter<T>` for the string-like types (`const char*`,
+///        `char*`, `std::string`, `std::string_view`): presentation
+///        `s` (default) writes the content as-is; `?` (C++23 debug
+///        format) wraps it in quotes with `\"`/`\\`/`\n`/`\t`/`\r`
+///        escaping (and `\xHH` for other non-printable bytes) -- an
+///        ASCII-only approximation of real `std::format`'s
+///        Unicode-aware escaping, matching this polyfill's byte-based
+///        approach throughout (docs/adr/0012). Precision truncates to
+///        at most that many bytes (also byte-based, not
+///        display-column-based).
+template <class T>
+struct formatter<T, std::enable_if_t<std::is_same_v<T, const char*> || std::is_same_v<T, char*> ||
+                                      std::is_same_v<T, std::string> || std::is_same_v<T, std::string_view>>> {
+    /// @brief Parses the format-spec.
+    /// @param pctx The parse context.
+    /// @return An iterator to the field's closing `}`.
+    format_parse_context::iterator parse(format_parse_context& pctx) {
+        spec_ = parse_std_spec(pctx, "s?");
+        return pctx.begin();
+    }
+
+    /// @brief Formats `value` into `ctx`.
+    /// @tparam FormatContext The context type (any `format_context<OutIt>`).
+    /// @param value The value to format.
+    /// @param ctx The output context.
+    /// @return `ctx.out()` after writing.
+    template <class FormatContext>
+    auto format(const T& value, FormatContext& ctx) const -> typename FormatContext::iterator {
+        std::string_view sv(value);
+        if (spec_.type == '?') {
+            std::string escaped;
+            escaped += '"';
+            for (char c : sv) field_writers::append_debug_escaped(escaped, c, '"');
+            escaped += '"';
+            std::size_t precision = spec_.precision.k == width_or_precision::kind::none
+                                         ? escaped.size()
+                                         : resolve_width_or_precision(spec_.precision, ctx);
+            field_writers::write_string_field(
+                ctx, field_writers::truncate_to_precision(escaped, spec_, precision), spec_);
+            return ctx.out();
+        }
+        std::size_t precision = spec_.precision.k == width_or_precision::kind::none
+                                     ? sv.size()
+                                     : resolve_width_or_precision(spec_.precision, ctx);
+        field_writers::write_string_field(ctx, field_writers::truncate_to_precision(sv, spec_, precision), spec_);
+        return ctx.out();
+    }
+
+private:
+    parsed_std_spec spec_{};
 };
 
 /// @brief Symbols promoted to `bridge::exports::truss`.
