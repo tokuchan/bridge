@@ -11,6 +11,61 @@ See [`<format>`](https://en.cppreference.com/w/cpp/utility/format) on cppreferen
 - `include/deck/cpp17/print.hpp`
 <!-- BRIDGE-DOCS:END -->
 
+## Synopsis
+
+`bridge::format`/`bridge::print`/`bridge::println` match C++23's
+`std::format` family: a format-spec mini-language, a user-extensible
+`formatter<T>` customization point, and `print`/`println` built on top.
+`format` has no pre-existing STL facility at all before C++20, so Truss
+owns the whole thing outright -- the parser, the type-erasure machinery
+behind `vformat`, every built-in formatter, and the top-level entry
+points -- and `print`/`println` always call into *this same library's*
+`format`, never whichever engine Deck happened to select.
+
+## Example
+
+```cpp
+#include <deck/cpp17/format.hpp>
+#include <deck/cpp17/print.hpp>
+
+std::string s = bridge::format("{} is {:.1f}% done", "build", 87.5);
+// s == "build is 87.5% done"
+bridge::println("{}", s);
+```
+
+## Divergences
+
+- **No range or chrono formatting, no locale-aware formatting.** The
+  `L` spec flag parses but is always ignored, behaving as if absent.
+- **No compile-time format-string validation.** C++17 has no
+  `consteval` to reject a malformed literal format string at compile
+  time; it compiles here and throws `format_error` at runtime instead
+  -- disclosed via a `BRIDGE_RIVETS_DIVERGENCE_NOTE` wherever the
+  polyfill's `format_string` is actually selected.
+- **Field width is byte-based, not Unicode-display-column-based.**
+  Correct for ASCII content; a computed field comes out wider than
+  intended for multi-byte UTF-8 content.
+- **`formatter<T>` can't transparently unify across the passthrough
+  boundary.** It's the one symbol here users *specialize* rather than
+  just name, and C++ doesn't allow specializing an alias template.
+  Extending formatting for your own type means specializing
+  `bridge::truss::formatter<T>` (polyfill path) or `std::formatter<T>`
+  (passthrough) directly -- not `bridge::formatter<T>` itself, which
+  can be named but never specialized. A type meant to stay formattable
+  across a C++17-&gt;C++20 toolchain upgrade genuinely needs both
+  specializations; this is an inherent limitation of what alias
+  templates can do in C++, not a gap in this facility's design.
+  Disclosed via its own `BRIDGE_RIVETS_DIVERGENCE_NOTE` on the polyfill
+  branch.
+
+Full rationale for all of the above in
+[ADR-0012](https://github.com/tokuchan/bridge/blob/master/docs/adr/0012-format-print-truss-owns-the-facility.md);
+why the compiler-noted gaps get a `BRIDGE_RIVETS_DIVERGENCE_NOTE` rather
+than only a code comment in
+[ADR-0011](https://github.com/tokuchan/bridge/blob/master/docs/adr/0011-warn-on-surprising-facility-divergences.md).
+
+## Passthrough
+
 `std::format` and `std::print`/`std::println` cross their real
 passthrough thresholds at *different* standards -- `format` in C++20,
 `print`/`println` three years later in C++23 -- so this facility is
@@ -18,43 +73,10 @@ gated by two independent Feature Tests
 (`BRIDGE_RIVETS_FEATURES_LIB_FORMAT`/`_LIB_PRINT`) rather than one, and
 Deck owns two separate alias-selection headers
 (`deck/cpp17/format.hpp`, `deck/cpp17/print.hpp`) even though they're
-one conceptual division on this page. `format` itself is function-shaped
-with no pre-existing STL facility at all before C++20 -- unlike
-`optional` (free functions on an existing type) or `expected` (a class,
-since no existing type to extend) -- so Truss owns the whole thing: a
-hand-written format-spec parser, the type-erasure machinery behind
-`vformat`, the full two-phase `formatter<T>` customization point, every
-built-in formatter, and the top-level entry points. `print`/`println`
-are built on top, always calling into *this same library's* `format`
--- never whichever `format` Deck happened to select -- confirmed by
-benchmark not to cost enough to justify an exception to that rule (see
-[ADR-0012](https://github.com/tokuchan/bridge/blob/master/docs/adr/0012-format-print-truss-owns-the-facility.md)).
-
-Scope is deliberately narrower than the full standard surface: no range
-or chrono formatting, no locale-aware formatting (the `L` flag parses
-but is ignored), and no compile-time format-string validation (C++17
-has no `consteval` to do that with -- a malformed literal format string
-compiles and throws at runtime here, instead of failing to compile).
-Each gap is disclosed in ADR-0012, and the runtime-vs-compile-time
-validation gap specifically carries a
-[`BRIDGE_RIVETS_DIVERGENCE_NOTE`](https://github.com/tokuchan/bridge/blob/master/docs/adr/0011-warn-on-surprising-facility-divergences.md)
-wherever the polyfill's `format_string` is actually selected.
-
-### `formatter<T>` needs two specializations to survive a toolchain upgrade
-
-Every other symbol on this page (`format_error`, `format_context`,
-`format_parse_context`, ...) is a plain alias Deck resolves per path,
-transparently either way. `formatter<T>` can't work the same way: it's
-the one symbol here users *specialize*, and C++ doesn't allow
-specializing an alias template. Extending formatting for your own type
-means specializing `bridge::truss::formatter<T>` (for the polyfill
-path) or `std::formatter<T>` (once passthrough activates) directly --
-not `bridge::formatter<T>` itself, which can be named but never
-specialized. A type meant to stay formattable across a C++17-&gt;C++20
-toolchain upgrade genuinely needs both specializations; this is an
-inherent limitation of what alias templates can do in C++, disclosed
-in ADR-0012's own subsection on the topic, not a gap in this facility's
-design.
+one conceptual division on this page. Confirmed by benchmark that
+routing `print` through whichever `format` Deck selected (instead of
+always Truss's own) wouldn't cost enough to justify an exception to
+the "Truss never passes through" rule (ADR-0012).
 
 <!-- BRIDGE-DOCS:BEGIN symbols -->
 | Symbol | Kind | Brief | cppreference |
