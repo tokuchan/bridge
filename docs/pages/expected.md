@@ -9,32 +9,79 @@ See [`<expected>`](https://en.cppreference.com/w/cpp/utility/expected) on cppref
 - `include/deck/cpp17/expected.hpp`
 <!-- BRIDGE-DOCS:END -->
 
-`std::expected<T,E>` doesn't exist before C++23, and unlike `optional`
-there's no pre-C++23 STL type to attach free functions to -- so Truss
-owns a complete, from-scratch class here, matching real `std::expected`
-member-for-member (including its companions `unexpected<E>`,
-`unexpect_t`/`unexpect`, and `bad_expected_access<E>`). Deck's own
-`expected.hpp` then collapses to a plain type alias: either straight to
-`std::expected<T,E>` once the ecosystem has it, or to
-`bridge::truss::expected<T,E>` otherwise -- there's nothing left for
-Deck to *wrap*, since Truss's class already has the target shape. This
-is the key structural difference from `optional`: Deck only ever needs
-to build a wrapper when Truss's own contribution is free functions, not
-a full class.
+## Synopsis
 
-Truss's polyfill deliberately doesn't chase perfect fidelity to the
-real type -- deletion conditions on the special members are matched
-exactly, but conditional triviality and the standard's full two-stage
-exception-safe reassignment technique are out of scope, and two smaller
-divergences (unconditionally-`explicit` converting constructors, and a
-narrower SFINAE guard on the `expected<U,G>` converting constructor)
-are disclosed via a `BRIDGE_RIVETS_DIVERGENCE_NOTE` wherever the
-polyfill is actually selected. See
-[ADR-0010](https://github.com/tokuchan/bridge/blob/master/docs/adr/0010-expected-truss-owns-the-class.md)
-for the full fidelity scope and rationale, and
-[ADR-0011](https://github.com/tokuchan/bridge/blob/master/docs/adr/0011-warn-on-surprising-facility-divergences.md)
-for why these specific gaps get a compiler-visible note rather than
-only a code comment.
+`bridge::expected<T,E>` holds either a value of type `T` or an error of
+type `E`, matching C++23's `std::expected<T,E>`. `std::expected` doesn't
+exist before C++23 and has no pre-existing STL type to attach free
+functions to (unlike `optional`), so Truss owns a complete,
+from-scratch class -- including its companions `unexpected<E>`,
+`unexpect_t`/`unexpect`, and `bad_expected_access<E>` -- and Deck
+selects between it and the real `std::expected<T,E>`.
+
+## Example
+
+```cpp
+#include <deck/cpp17/expected.hpp>
+
+bridge::expected<int, std::string> half(int v) {
+    if (v % 2 != 0) {
+        return bridge::expected<int, std::string>{bridge::unexpect, "odd"};
+    }
+    return bridge::expected<int, std::string>{v / 2};
+}
+
+bridge::expected<int, std::string> start{8};
+auto result = start.and_then(half).and_then(half);
+// result == bridge::expected<int, std::string>{2}
+
+bridge::expected<int, std::string> odd{7};
+auto failed = odd.and_then(half);
+// failed.error() == "odd"
+```
+
+Both return statements construct `expected` explicitly rather than
+relying on an implicit conversion from `unexpected<E>` or a raw value --
+see Divergences below for why that matters here specifically.
+
+## Divergences
+
+- **Converting constructors are unconditionally `explicit`.** Real
+  `std::expected` allows implicit conversion from `unexpected<G>`, a raw
+  value, or another `expected<U,G>` when convertibility permits; C++17
+  has no `explicit(bool)` to make that conditional, so the polyfill
+  requires explicit construction everywhere instead.
+- **The `expected<U,G>` converting constructor omits `std::expected`'s
+  extra defensive SFINAE guards** (converts-from-any-cvref and
+  friends), matching only the core `is_constructible_v` constraint --
+  an edge-case ambiguity real `std::expected` guards against that the
+  polyfill doesn't.
+- **No conditional triviality.** `std::expected<T,E>` is trivially
+  copyable/destructible when `T`/`E` are; replicating that needs the
+  same base-class-specialization machinery real STL implementations
+  use, out of scope for a header-only backport.
+- **Simplified exception safety.** Assignment uses straightforward
+  destroy-then-construct, not the standard's full two-stage
+  "reinit-expected" technique for the narrow case where a throwing move
+  constructor could otherwise leave the object valueless after a failed
+  reassignment.
+
+The first two are disclosed via a compiler-visible
+`BRIDGE_RIVETS_DIVERGENCE_NOTE` wherever the polyfill is actually
+selected ([ADR-0011](https://github.com/tokuchan/bridge/blob/master/docs/adr/0011-warn-on-surprising-facility-divergences.md));
+all four are covered in full in
+[ADR-0010](https://github.com/tokuchan/bridge/blob/master/docs/adr/0010-expected-truss-owns-the-class.md).
+
+## Passthrough
+
+Deck selects between passthrough and polyfill on
+`BRIDGE_RIVETS_FEATURES_LIB_EXPECTED >= 202211L` (the Feature Test
+value for `std::expected`, [P0323](https://en.cppreference.com/w/cpp/feature_test)):
+`std::expected<T,E>` once confirmed, `bridge::truss::expected<T,E>`
+otherwise -- Truss's own class never itself passes through, even under
+C++23. There's nothing left for Deck to *wrap* here, unlike `optional`:
+Deck only builds a wrapper when Truss's contribution is free functions
+on an existing STL type, not a full class.
 
 <!-- BRIDGE-DOCS:BEGIN symbols -->
 | Symbol | Kind | Brief | cppreference |
