@@ -2,6 +2,7 @@
 
 <!-- BRIDGE-DOCS:BEGIN headers -->
 - `include/truss/cpp17/span.hpp`
+- `include/deck/cpp17/span.hpp`
 <!-- BRIDGE-DOCS:END -->
 
 `std::span<T, Extent>` doesn't exist at all before C++20 -- like
@@ -31,6 +32,6 @@ its own disclosed follow-up with an independent Feature Test threshold.
 |---|---|---|---|
 | `as_bytes` | function | Reinterprets s's elements as a read-only view of their underlying bytes. Matches real std::as_bytes. | [https://en.cppreference.com/w/cpp/container/span](https://en.cppreference.com/w/cpp/container/span) |
 | `as_writable_bytes` | function | Reinterprets s's elements as a writable view of their underlying bytes. Matches real std::as_writable_bytes. Only participates when T isn't itself const-qualified, matching the real function's constraint. | [https://en.cppreference.com/w/cpp/container/span](https://en.cppreference.com/w/cpp/container/span) |
-| `dynamic_extent` | variable | Sentinel Extent value meaning "the size is only known at runtime." Matches real std::dynamic_extent. | [https://en.cppreference.com/w/cpp/container/span](https://en.cppreference.com/w/cpp/container/span) |
+| `dynamic_extent` | variable | Polyfill companion to span. | [https://en.cppreference.com/w/cpp/container/span](https://en.cppreference.com/w/cpp/container/span) |
 | `span` | class | A non-owning view over a contiguous sequence of T, with an Extent known either at compile time or only at runtime. Matches real std::span&lt;T, Extent&gt;'s shape: trivially copyable, never allocates, never extends the viewed sequence's lifetime. | [https://en.cppreference.com/w/cpp/container/span](https://en.cppreference.com/w/cpp/container/span) |
 <!-- BRIDGE-DOCS:END -->

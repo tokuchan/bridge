@@ -1,5 +1,6 @@
 add_executable(bridge_deck_tests cpp17/version_test.cpp cpp17/optional_test.cpp cpp17/expected_test.cpp
-                                  cpp17/format_test.cpp cpp17/print_test.cpp cpp17/format_differential_test.cpp)
+                                  cpp17/format_test.cpp cpp17/print_test.cpp cpp17/format_differential_test.cpp
+                                  cpp17/span_test.cpp)
 target_link_libraries(bridge_deck_tests PRIVATE bridge::deck Catch2::Catch2WithMain)
 catch_discover_tests(bridge_deck_tests)
 
@@ -45,3 +46,13 @@ add_executable(bridge_deck_print_cpp23_tests cpp17/print_test.cpp cpp17/print_di
 target_link_libraries(bridge_deck_print_cpp23_tests PRIVATE bridge::deck Catch2::Catch2WithMain)
 target_compile_features(bridge_deck_print_cpp23_tests PRIVATE cxx_std_23)
 catch_discover_tests(bridge_deck_print_cpp23_tests)
+
+# Same reasoning as bridge_deck_format_cpp20_tests, for span's own
+# passthrough path -- span crosses its real threshold at C++20, same
+# as format (docs/adr/0015). Includes the differential test comparing
+# bridge::truss::span against real std::span directly, and
+# bridge::span against std::span for the passthrough alias itself.
+add_executable(bridge_deck_span_cpp20_tests cpp17/span_test.cpp cpp17/span_differential_test.cpp)
+target_link_libraries(bridge_deck_span_cpp20_tests PRIVATE bridge::deck Catch2::Catch2WithMain)
+target_compile_features(bridge_deck_span_cpp20_tests PRIVATE cxx_std_20)
+catch_discover_tests(bridge_deck_span_cpp20_tests)

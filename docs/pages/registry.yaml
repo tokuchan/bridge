@@ -48,7 +48,7 @@ facilities:
     cppreference: https://en.cppreference.com/w/cpp/container/span
     headers:
       - include/truss/cpp17/span.hpp
-      # include/deck/cpp17/span.hpp lands in a follow-up commit
+      - include/deck/cpp17/span.hpp
       # (docs/adr/0015-span-truss-owns-the-class.md, task #80).
 
   - name: detectors

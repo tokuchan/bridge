@@ -20,8 +20,15 @@ Versions are CalVer: `YY.MM.MICRO` (see docs/adr/0005-calver-versioning.md).
   behavior), and `as_bytes`/`as_writable_bytes`. New
   `BRIDGE_RIVETS_FEATURES_LIB_SPAN` Feature Test
   (`include/rivets/features.hpp`), empirically confirmed at `202002L`
-  from C++20 onward on both GCC and Clang. Deck's alias-selection
-  (`include/deck/cpp17/span.hpp`) lands in a follow-up commit.
+  from C++20 onward on both GCC and Clang.
+- Deck's `span<T, Extent>` alias-selection, in a new
+  `include/deck/cpp17/span.hpp`: a plain type alias to real
+  `std::span<T, Extent>` once `BRIDGE_RIVETS_FEATURES_LIB_SPAN`
+  confirms native support, or to `bridge::truss::span` otherwise --
+  same shape as `expected`'s deck header, since Truss's class already
+  has the target shape. `dynamic_extent`/`as_bytes`/`as_writable_bytes`
+  are selected the same way, so they always match whichever `span`
+  path was chosen.
 - Deck's `print`/`println` alias-selection, in a new
   `include/deck/cpp17/print.hpp`: resolves to real `std::print`/
   `std::println` once `BRIDGE_RIVETS_FEATURES_LIB_PRINT` confirms
