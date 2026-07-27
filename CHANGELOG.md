@@ -7,6 +7,12 @@ Versions are CalVer: `YY.MM.MICRO` (see docs/adr/0005-calver-versioning.md).
 ## [Unreleased]
 
 ### Added
+- docs/adr/0017-jthread-stop-token-truss-owns-the-class.md: the
+  `jthread`/`stop_token` backport's design -- Truss owns full classes
+  (matching `expected`/`span`'s precedent), the Detector-backed
+  Feature Test override for libstdc++'s `__cpp_lib_stop_token` gap,
+  `stop_callback`'s deferral and why, and the unconditional
+  `Threads::Threads` link.
 - `Threads::Threads` (CMake's `FindThreads`) now links unconditionally
   on `truss` (and transitively `deck`), the first real system-library
   link dependency either has had -- needed for the upcoming
