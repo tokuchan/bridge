@@ -19,13 +19,14 @@
 
 A Detector answers "what version range is *this specific* compiler or
 library at," as both a `constexpr bool` and an `#if`-usable macro.
-**Standard** (`standard.hpp`), **GCC**, and **Clang** are implemented
-today, each with the same shape: five generic comparators
-(`gt`/`ge`/`lt`/`le`/`eq`) as Layer 1, plus however many specific Named
-Detectors (`bridge::rivets::gcc::ge_13()`, `BRIDGE_RIVETS_GCC_GE(13)`)
-as Layer 2 that this codebase or a consumer actually needs -- generated
-via `BRIDGE_RIVETS_DEFINE_DETECTOR`, never hand-written one at a time.
-See \ref page_rivets for the shared mental model (the "sparse Cartesian
+**Standard** (`standard.hpp`), **GCC**, **Clang**, and **libstdc++**
+are implemented today, each with the same shape: five generic
+comparators (`gt`/`ge`/`lt`/`le`/`eq`) as Layer 1, plus however many
+specific Named Detectors (`bridge::rivets::gcc::ge_13()`,
+`BRIDGE_RIVETS_GCC_GE(13)`) as Layer 2 that this codebase or a
+consumer actually needs -- generated via
+`BRIDGE_RIVETS_DEFINE_DETECTOR`, never hand-written one at a time. See
+\ref page_rivets for the shared mental model (the "sparse Cartesian
 product" this two-layer split serves).
 
 ## Example
@@ -55,13 +56,16 @@ int main() {
 
 ## Notes
 
-- **MSVC**, the **MSVC STL**, **libstdc++**/**libc++**, and **Boost**
-  are registered facility headers but deliberately not yet
-  implemented -- each file documents its own intended shape (and, for
-  Boost specifically, why its Layer 1 needs a two-component
-  `ge(major, minor)` form the other Entities don't) so the design is
-  visible before the real work happens; that's why they don't appear
-  in the symbol table below yet.
+- **MSVC**, the **MSVC STL**, **libc++**, and **Boost** are registered
+  facility headers but deliberately not yet implemented -- each file
+  documents its own intended shape (and, for Boost specifically, why
+  its Layer 1 needs a two-component `ge(major, minor)` form the other
+  Entities don't) so the design is visible before the real work
+  happens; that's why they don't appear in the symbol table below yet.
+- **libstdc++** was implemented ahead of its own turn in this list,
+  needed as a Detector-based override for a real libstdc++ Feature
+  Test gap (`__cpp_lib_stop_token` is never defined, even though
+  `stop_token` itself works) -- see docs/adr/0017.
 - Detectors live directly in their own namespace with no
   Detail/Exports tiering (unlike Truss/Deck's facilities): there's
   never more than one right answer to "is GCC at least version 13," so
@@ -93,6 +97,12 @@ int main() {
 | `BRIDGE_RIVETS_GCC_LE` | define | `#if`-usable form of bridge::rivets::gcc::le. |
 | `BRIDGE_RIVETS_GCC_LT` | define | `#if`-usable form of bridge::rivets::gcc::lt. |
 | `BRIDGE_RIVETS_GCC_VERSION` | define | GCC's major version, or `0` when not compiling with real GCC. |
+| `BRIDGE_RIVETS_LIBSTDCXX_EQ` | define | `#if`-usable form of bridge::rivets::libstdcxx::eq. |
+| `BRIDGE_RIVETS_LIBSTDCXX_GE` | define | `#if`-usable form of bridge::rivets::libstdcxx::ge. |
+| `BRIDGE_RIVETS_LIBSTDCXX_GT` | define | `#if`-usable form of bridge::rivets::libstdcxx::gt. |
+| `BRIDGE_RIVETS_LIBSTDCXX_LE` | define | `#if`-usable form of bridge::rivets::libstdcxx::le. |
+| `BRIDGE_RIVETS_LIBSTDCXX_LT` | define | `#if`-usable form of bridge::rivets::libstdcxx::lt. |
+| `BRIDGE_RIVETS_LIBSTDCXX_VERSION` | define | libstdc++'s release version, or `0` when libstdc++ isn't the active standard library. |
 | `bridge::rivets::clang::eq` | function | Is Clang's version exactly `n`? |
 | `bridge::rivets::clang::ge` | function | Is Clang's version greater than or equal to `n`? |
 | `bridge::rivets::clang::ge_18` | function | Named Detector: is clang's version ge 18? *. |
@@ -106,6 +116,12 @@ int main() {
 | `bridge::rivets::gcc::le` | function | Is GCC's version less than or equal to `n`? |
 | `bridge::rivets::gcc::lt` | function | Is GCC's version less than `n`? |
 | `bridge::rivets::gcc::version` | variable | GCC's major version, or `0` when not compiling with real GCC. |
+| `bridge::rivets::libstdcxx::eq` | function | Is libstdc++'s version exactly `n`? |
+| `bridge::rivets::libstdcxx::ge` | function | Is libstdc++'s version greater than or equal to `n`? |
+| `bridge::rivets::libstdcxx::gt` | function | Is libstdc++'s version greater than `n`? |
+| `bridge::rivets::libstdcxx::le` | function | Is libstdc++'s version less than or equal to `n`? |
+| `bridge::rivets::libstdcxx::lt` | function | Is libstdc++'s version less than `n`? |
+| `bridge::rivets::libstdcxx::version` | variable | libstdc++'s release version, or `0` when it isn't the active standard library. |
 | `bridge::rivets::standard::eq` | function | Is the active C++ standard exactly `ordinal`? |
 | `bridge::rivets::standard::ge` | function | Is the active C++ standard greater than or equal to `ordinal`? |
 | `bridge::rivets::standard::gt` | function | Is the active C++ standard greater than `ordinal`? |

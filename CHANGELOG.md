@@ -7,6 +7,14 @@ Versions are CalVer: `YY.MM.MICRO` (see docs/adr/0005-calver-versioning.md).
 ## [Unreleased]
 
 ### Added
+- `rivets/libstdcxx.hpp`: a real libstdc++ version Detector
+  (`bridge::rivets::libstdcxx::gt`/`ge`/`lt`/`le`/`eq`,
+  `BRIDGE_RIVETS_LIBSTDCXX_*` macros), keyed off `_GLIBCXX_RELEASE`
+  (confirmed visible via `<version>` alone). Previously a
+  documented-but-unimplemented stub; implemented ahead of its own turn
+  because the upcoming `jthread`/`stop_token` backport needs it as a
+  Feature Test override (`__cpp_lib_stop_token` is never defined on
+  libstdc++, even though `stop_token` itself works).
 - CONTEXT.md and every `docs/adr/*.md` fold into the generated
   documentation site (docs/adr/0014's amendment): added to Doxygen's
   `INPUT` as-is, no `\page` directive injected, so both stay 100%
