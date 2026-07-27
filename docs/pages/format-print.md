@@ -99,5 +99,5 @@ the "Truss never passes through" rule (ADR-0012).
 | `make_format_args` | function | Constructs a type-erased `format_args` from `args`, for `vformat`. | [`<format>::make_format_args`](https://en.cppreference.com/w/cpp/utility/format) |
 | `print` | function | Writes `format(fmt, args...)` to `stream`. | [`<format>::print`](https://en.cppreference.com/w/cpp/utility/format) |
 | `println` | function | Writes `format(fmt, args...)` followed by a newline to `stream`. | [`<format>::println`](https://en.cppreference.com/w/cpp/utility/format) |
-| `vformat` | function | Formats a type-erased argument pack according to `fmt`, returning the result as a new `std::string`. Unlike `format`, `fmt` is a plain `std::string_view` `vformat` is explicitly the "runtime format string, no format-string- specific type" entry point, matching real `std::vformat`. | [`<format>::vformat`](https://en.cppreference.com/w/cpp/utility/format) |
+| `vformat` | function | Formats a type-erased argument pack according to `fmt`, returning the result as a new `std::string`. Unlike `format`, `fmt` is a plain `std::string_view` -- `vformat` is explicitly the "runtime format string, no format-string- specific type" entry point, matching real `std::vformat`. | [`<format>::vformat`](https://en.cppreference.com/w/cpp/utility/format) |
 <!-- BRIDGE-DOCS:END -->

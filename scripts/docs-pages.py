@@ -111,6 +111,22 @@ def escape_markdown_plain(text):
     return text
 
 
+#: Doxygen substitutes typographic entities for certain plain-ASCII
+#: sequences written in the original /// comment (its own Markdown
+#: "smart typography" pass, independent of anything render_inline()
+#: itself does) -- these render as empty self-closing XML elements
+#: (e.g. `<ndash/>`), not text, so itertext()-based flattening or a
+#: naive child-tag walk that doesn't know about them silently drops
+#: the character entirely rather than mis-rendering it. Confirmed by
+#: hitting exactly this (a brief's own "--" vanishing from the
+#: generated table) before adding this table, not assumed.
+DOXYGEN_ENTITY_TAGS = {
+    "ndash": "--",
+    "mdash": "---",
+    "hellip": "...",
+}
+
+
 def render_inline(elem):
     """Reconstructs Markdown from a Doxygen `<para>`-like element's
     inline content: `<computeroutput>` (backtick-quoted code written in
@@ -131,6 +147,8 @@ def render_inline(elem):
             parts.append(f"**{render_inline(child)}**")
         elif tag == "emphasis":
             parts.append(f"*{render_inline(child)}*")
+        elif tag in DOXYGEN_ENTITY_TAGS:
+            parts.append(DOXYGEN_ENTITY_TAGS[tag])
         else:
             parts.append(render_inline(child))
         if child.tail:

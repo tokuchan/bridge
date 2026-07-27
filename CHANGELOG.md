@@ -7,6 +7,19 @@ Versions are CalVer: `YY.MM.MICRO` (see docs/adr/0005-calver-versioning.md).
 ## [Unreleased]
 
 ### Added
+- Truss's `jthread` polyfill, in a new
+  `include/truss/cpp17/jthread.hpp`: built directly on `std::thread`
+  (a real C++11 facility) plus this same library's `stop_token.hpp` --
+  no platform-specific code needed. RAII: requests a stop and joins on
+  destruction if still joinable, unlike `std::thread`'s own destructor
+  (which terminates the program in that situation). The callable
+  passed to its constructor is invoked with a leading `stop_token`
+  automatically when it's invocable that way, via a compile-time
+  (`if constexpr`) check -- otherwise it runs exactly as `std::thread`
+  would call it. Move-only, matching `std::thread`; move-assignment
+  stops and joins the current thread first if still joinable, same as
+  the destructor. `registry.yaml`'s `jthread` facility now covers both
+  Truss headers; `deck/cpp17/` headers land in a follow-up commit.
 - Truss's `stop_token`/`stop_source` polyfill, in a new
   `include/truss/cpp17/stop_token.hpp`: from-scratch classes
   (docs/adr/0017) sharing cancellation state via `std::shared_ptr`,
@@ -224,6 +237,16 @@ Versions are CalVer: `YY.MM.MICRO` (see docs/adr/0005-calver-versioning.md).
 See docs/adr/0014's amendment for the full rationale behind each.
 
 ### Fixed
+- `scripts/docs-pages.py`'s Markdown reconstruction (`render_inline()`)
+  now handles Doxygen's typographic entity substitutions
+  (`<ndash/>`/`<mdash/>`/`<hellip/>` for `--`/`---`/`...` written in the
+  original `///` comment) -- previously silently dropped, since they
+  render as empty self-closing XML elements with no text of their own,
+  not caught by the code-span/bold/emphasis cases already handled.
+  Found by a genuinely broken table cell (a brief's own `--` missing
+  entirely) while adding `jthread.hpp`'s docs; confirmed the same bug
+  had already silently affected one already-shipped page
+  (`format-print.md`'s `vformat` row), fixed there too by regenerating.
 - `bridge::expected`'s polyfill path now surfaces its two
   already-shipped silent divergences from real `std::expected`
   (unconditionally-explicit converting constructors, and the omitted
