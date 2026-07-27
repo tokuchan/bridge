@@ -144,12 +144,18 @@ public:
 // partial ordering, resolving the ambiguity. Verified empirically before
 // writing this (three-way ambiguity without these; clean resolution
 // with them) rather than assumed.
+/// \cond BRIDGE_DETAIL
+///
 /// @def BRIDGE_DECK_OPTIONAL_DEFINE_COMPARISON
 /// @brief Defines every `operator op` overload `optional<T>` needs
 ///        (against another `optional`, `std::nullopt_t`, a plain
 ///        `std::optional<T>`, and a raw comparable value, both
 ///        directions where relevant) for one comparison operator.
 ///        Undefined again immediately after its six invocations below.
+///        Pure code-generation plumbing, not part of the public API --
+///        excluded from the documentation-coverage gate for the same
+///        reason truss/cpp17/format.hpp's field_writers/engine
+///        namespaces are.
 /// @param op The operator token, e.g. `==`.
 #define BRIDGE_DECK_OPTIONAL_DEFINE_COMPARISON(op)                                             \
     /** @brief Forwards to std::optional's operator op. */                                     \
@@ -210,6 +216,7 @@ BRIDGE_DECK_OPTIONAL_DEFINE_COMPARISON(>)
 BRIDGE_DECK_OPTIONAL_DEFINE_COMPARISON(>=)
 
 #undef BRIDGE_DECK_OPTIONAL_DEFINE_COMPARISON
+/// \endcond
 
 #endif // BRIDGE_RIVETS_FEATURES_LIB_OPTIONAL
 
