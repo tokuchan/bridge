@@ -1,22 +1,8 @@
 #include <catch2/catch_test_macros.hpp>
 
-// This file only exercises anything meaningful when compiled under a
-// standard/toolchain where std::format is actually available -- gated
-// on the same Feature Test deck/cpp17/format.hpp uses to select
-// passthrough, so this never tries to #include <format> on a
-// toolchain that doesn't have it. See tests/deck/CMakeLists.txt: it's
-// only added to the C++20-forced target, matching how
-// bridge_deck_expected_cpp23_tests exercises expected's own
-// passthrough path.
-#include <rivets/features.hpp>
+#include <string>
 
-#if BRIDGE_RIVETS_FEATURES_LIB_FORMAT >= 201907L
-
-#    include <format>
-#    include <string>
-#    include <type_traits>
-
-#    include <deck/cpp17/format.hpp>
+#include <deck/cpp17/format.hpp>
 
 namespace {
 
@@ -25,12 +11,12 @@ namespace {
 // section discloses: since bridge::formatter<T> is an alias template
 // on both branches (C++ can't specialize an alias template), a type
 // meant to stay formattable across the passthrough boundary needs two
-// separate specializations, one per engine. Truss never passes
-// through (docs/adr/0010's rule, applied here per docs/adr/0012), so
-// bridge::truss::format and std::format genuinely coexist as distinct
-// engines to exercise side by side in this one C++20 translation
-// unit, rather than testing each path in isolation and hoping they
-// agree.
+// separate specializations, one per engine. The bridge::truss::formatter
+// specialization below is unconditional (not gated on
+// BRIDGE_RIVETS_FEATURES_LIB_FORMAT) so it's compiled and exercised
+// under every standard this suite runs at, including the default
+// C++17 build -- not just the C++20-forced passthrough target further
+// down this file.
 struct point {
     int x;
     int y;
@@ -39,9 +25,8 @@ struct point {
 } // namespace
 
 // The polyfill-path specialization: picked up by bridge::truss::format
-// (and, when BRIDGE_RIVETS_FEATURES_LIB_FORMAT is below the passthrough
-// threshold, by bridge::format too -- not the case in this C++20-forced
-// translation unit, where bridge::format is std::format instead).
+// always (Truss never passes through), and by bridge::format too on any
+// standard below the passthrough threshold.
 template <>
 struct bridge::truss::formatter<point> {
     bridge::truss::format_parse_context::iterator parse(bridge::truss::format_parse_context& ctx) {
@@ -56,6 +41,27 @@ struct bridge::truss::formatter<point> {
         return out;
     }
 };
+
+TEST_CASE("a user type with only the polyfill's formatter specialization formats via bridge::truss::format",
+          "[deck][format][differential]") {
+    point p{3, 4};
+    REQUIRE(bridge::truss::format("{}", p) == "(3,4)");
+}
+
+// Everything below only exercises anything meaningful when compiled
+// under a standard/toolchain where std::format is actually available
+// -- gated on the same Feature Test deck/cpp17/format.hpp uses to
+// select passthrough, so this never tries to #include <format> on a
+// toolchain that doesn't have it. See tests/deck/CMakeLists.txt: it's
+// only added to the C++20-forced target, matching how
+// bridge_deck_expected_cpp23_tests exercises expected's own
+// passthrough path.
+#include <rivets/features.hpp>
+
+#if BRIDGE_RIVETS_FEATURES_LIB_FORMAT >= 201907L
+
+#    include <format>
+#    include <type_traits>
 
 // The passthrough-path specialization: picked up by std::format (and
 // so, in this translation unit, by bridge::format itself, since

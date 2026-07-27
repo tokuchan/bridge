@@ -28,7 +28,13 @@
 // <print> doesn't exist at all before C++23 -- only include it when
 // the Feature Test confirms this ecosystem actually has it, matching
 // how the passthrough branch below is only ever selected in that case.
+// <ostream> is included explicitly alongside it: `using std::print;`/
+// `using std::println;` below freeze the overload set at this point,
+// and the ostream-targeting overloads live in <ostream>, not <print>
+// -- included here defensively rather than relying on it arriving
+// transitively via truss/cpp17/print.hpp's own includes.
 #if BRIDGE_RIVETS_FEATURES_LIB_PRINT >= 202211L
+#    include <ostream>
 #    include <print>
 #endif
 
