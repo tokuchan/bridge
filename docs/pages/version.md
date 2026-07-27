@@ -1,5 +1,8 @@
 \page page_version Version
 
+<!-- BRIDGE-DOCS:BEGIN header-link -->
+<!-- BRIDGE-DOCS:END -->
+
 <!-- BRIDGE-DOCS:BEGIN headers -->
 - `include/truss/cpp17/version.hpp`
 - `include/deck/cpp17/version.hpp`

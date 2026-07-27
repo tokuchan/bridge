@@ -1,5 +1,9 @@
 \page page_format_print Format Print
 
+<!-- BRIDGE-DOCS:BEGIN header-link -->
+See [`<format>`](https://en.cppreference.com/w/cpp/utility/format) on cppreference.
+<!-- BRIDGE-DOCS:END -->
+
 <!-- BRIDGE-DOCS:BEGIN headers -->
 - `include/truss/cpp17/format.hpp`
 - `include/truss/cpp17/print.hpp`

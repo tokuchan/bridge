@@ -1,5 +1,9 @@
 \page page_feature_tests Feature Tests
 
+<!-- BRIDGE-DOCS:BEGIN header-link -->
+See [`<version>`](https://en.cppreference.com/w/cpp/feature_test) on cppreference.
+<!-- BRIDGE-DOCS:END -->
+
 <!-- BRIDGE-DOCS:BEGIN headers -->
 - `include/rivets/features.hpp`
 <!-- BRIDGE-DOCS:END -->

@@ -1,5 +1,9 @@
 \page page_span Span
 
+<!-- BRIDGE-DOCS:BEGIN header-link -->
+See [`<span>`](https://en.cppreference.com/w/cpp/container/span) on cppreference.
+<!-- BRIDGE-DOCS:END -->
+
 <!-- BRIDGE-DOCS:BEGIN headers -->
 - `include/truss/cpp17/span.hpp`
 - `include/deck/cpp17/span.hpp`

@@ -1,5 +1,8 @@
 \page page_diagnostics Diagnostics
 
+<!-- BRIDGE-DOCS:BEGIN header-link -->
+<!-- BRIDGE-DOCS:END -->
+
 <!-- BRIDGE-DOCS:BEGIN headers -->
 - `include/rivets/diagnostics.hpp`
 <!-- BRIDGE-DOCS:END -->

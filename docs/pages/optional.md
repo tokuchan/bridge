@@ -1,5 +1,9 @@
 \page page_optional Optional
 
+<!-- BRIDGE-DOCS:BEGIN header-link -->
+See [`<optional>`](https://en.cppreference.com/w/cpp/utility/optional) on cppreference.
+<!-- BRIDGE-DOCS:END -->
+
 <!-- BRIDGE-DOCS:BEGIN headers -->
 - `include/truss/cpp17/optional.hpp`
 - `include/deck/cpp17/optional.hpp`

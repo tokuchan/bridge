@@ -1,5 +1,8 @@
 \page page_detectors Detectors
 
+<!-- BRIDGE-DOCS:BEGIN header-link -->
+<!-- BRIDGE-DOCS:END -->
+
 <!-- BRIDGE-DOCS:BEGIN headers -->
 - `include/rivets/boost.hpp`
 - `include/rivets/clang.hpp`

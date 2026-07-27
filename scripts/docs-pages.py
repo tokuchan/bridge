@@ -245,6 +245,21 @@ def render_headers_block(facility):
     return "\n".join(lines) + "\n"
 
 
+def render_header_link_block(facility):
+    """A prominent link to the facility's real C++ standard header
+    (e.g. `<optional>`), placed right before the page's Synopsis --
+    empty for facilities with no real std:: mirror (`header: null` in
+    registry.yaml), so the marker stays uniform across every page
+    without leaving stray markup on the ones that don't apply."""
+    header = facility.get("header")
+    if not header:
+        return ""
+    cppref = facility.get("cppreference")
+    if cppref:
+        return f"See [`{header}`]({cppref}) on cppreference.\n"
+    return f"Mirrors `{header}`.\n"
+
+
 def cppreference_stub(facility, symbol_name):
     """The compact `<header>::name` form shown in place of the full
     cppreference URL, so the generated table has room to breathe
@@ -289,6 +304,7 @@ def render_symbols_block(facility):
 
 
 BLOCK_RENDERERS = {
+    "header-link": render_header_link_block,
     "headers": render_headers_block,
     "symbols": render_symbols_block,
 }
@@ -298,9 +314,9 @@ def scaffold_content(facility):
     page_id = "page_" + facility["name"].replace("-", "_")
     title = facility["name"].replace("-", " ").title()
     parts = [f"\\page {page_id} {title}\n"]
-    for tag in ("headers", "symbols"):
+    for tag in ("header-link", "headers", "symbols"):
         parts.append(f"{BLOCK_BEGIN.format(tag=tag)}\n{BLOCK_END}\n")
-    parts.insert(2, "TODO: narrative prose for this facility.\n")
+    parts.insert(3, "TODO: narrative prose for this facility.\n")
     return "\n".join(parts)
 
 

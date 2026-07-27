@@ -1,5 +1,9 @@
 \page page_expected Expected
 
+<!-- BRIDGE-DOCS:BEGIN header-link -->
+See [`<expected>`](https://en.cppreference.com/w/cpp/utility/expected) on cppreference.
+<!-- BRIDGE-DOCS:END -->
+
 <!-- BRIDGE-DOCS:BEGIN headers -->
 - `include/truss/cpp17/expected.hpp`
 - `include/deck/cpp17/expected.hpp`
