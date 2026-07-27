@@ -84,6 +84,29 @@
 #    define BRIDGE_RIVETS_FEATURES_LIB_SPAN 0
 #endif
 
+/// @def BRIDGE_RIVETS_FEATURES_LIB_JTHREAD
+/// @brief `#if`-usable value of `__cpp_lib_jthread`, or `0` if undefined.
+#ifdef __cpp_lib_jthread
+#    define BRIDGE_RIVETS_FEATURES_LIB_JTHREAD __cpp_lib_jthread
+#else
+#    define BRIDGE_RIVETS_FEATURES_LIB_JTHREAD 0
+#endif
+
+/// @def BRIDGE_RIVETS_FEATURES_LIB_STOP_TOKEN
+/// @brief `#if`-usable value of `__cpp_lib_stop_token`, or `0` if
+///        undefined.
+///
+///        Confirmed via probe: on every GCC (13-15) and Clang (20)
+///        this project's matrix covers, this is always `0` -- libstdc++
+///        never defines the macro, even though `stop_token` itself
+///        works. See `bridge::rivets::libstdcxx` for the Detector-based
+///        override this drives in `deck/cpp17/jthread.hpp`.
+#ifdef __cpp_lib_stop_token
+#    define BRIDGE_RIVETS_FEATURES_LIB_STOP_TOKEN __cpp_lib_stop_token
+#else
+#    define BRIDGE_RIVETS_FEATURES_LIB_STOP_TOKEN 0
+#endif
+
 namespace bridge::rivets::features {
 
 /// @brief Value of `__cpp_lib_optional`, or `0` if undefined.
@@ -100,5 +123,11 @@ inline constexpr long lib_print = BRIDGE_RIVETS_FEATURES_LIB_PRINT;
 
 /// @brief Value of `__cpp_lib_span`, or `0` if undefined.
 inline constexpr long lib_span = BRIDGE_RIVETS_FEATURES_LIB_SPAN;
+
+/// @brief Value of `__cpp_lib_jthread`, or `0` if undefined.
+inline constexpr long lib_jthread = BRIDGE_RIVETS_FEATURES_LIB_JTHREAD;
+
+/// @brief Value of `__cpp_lib_stop_token`, or `0` if undefined.
+inline constexpr long lib_stop_token = BRIDGE_RIVETS_FEATURES_LIB_STOP_TOKEN;
 
 } // namespace bridge::rivets::features

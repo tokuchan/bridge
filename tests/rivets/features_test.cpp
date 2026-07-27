@@ -116,3 +116,51 @@ TEST_CASE("BRIDGE_RIVETS_FEATURES_LIB_SPAN is #if-usable", "[rivets][features]")
     FAIL("BRIDGE_RIVETS_FEATURES_LIB_SPAN should be 0 or at least the C++20 baseline");
 #endif
 }
+
+TEST_CASE("bridge::rivets::features::lib_jthread matches __cpp_lib_jthread", "[rivets][features]") {
+#ifdef __cpp_lib_jthread
+    REQUIRE(bridge::rivets::features::lib_jthread == __cpp_lib_jthread);
+#else
+    // std::jthread doesn't exist at all before C++20 -- __cpp_lib_jthread is
+    // legitimately undefined under -std=c++17, confirmed by direct compiler
+    // probe before this Feature Test was written (both GCC 13-15 and Clang
+    // 20 report exactly 201911L from -std=c++20 onward).
+    REQUIRE(bridge::rivets::features::lib_jthread == 0);
+#endif
+}
+
+TEST_CASE("BRIDGE_RIVETS_FEATURES_LIB_JTHREAD is #if-usable", "[rivets][features]") {
+#if BRIDGE_RIVETS_FEATURES_LIB_JTHREAD == 0
+    SUCCEED(); // pre-C++20 toolchains legitimately report 0 here
+#elif BRIDGE_RIVETS_FEATURES_LIB_JTHREAD >= 201911L
+    SUCCEED();
+#else
+    FAIL("BRIDGE_RIVETS_FEATURES_LIB_JTHREAD should be 0 or at least the C++20 baseline");
+#endif
+}
+
+TEST_CASE("bridge::rivets::features::lib_stop_token matches __cpp_lib_stop_token", "[rivets][features]") {
+    // Confirmed by direct compiler probe (not assumed): on every GCC (13-15)
+    // and Clang (20) this project's matrix covers, __cpp_lib_stop_token is
+    // never defined, even under -std=c++20/-std=c++23 -- a libstdc++-wide
+    // gap in publishing the macro, not a real absence of the feature (see
+    // bridge::rivets::libstdcxx and deck/cpp17/jthread.hpp's override). This
+    // test follows the same ifdef-mirrors-the-macro shape every other
+    // Feature Test test uses, so it stays correct if some future libstdc++
+    // (or a different stdlib entirely) finally defines the macro.
+#ifdef __cpp_lib_stop_token
+    REQUIRE(bridge::rivets::features::lib_stop_token == __cpp_lib_stop_token);
+#else
+    REQUIRE(bridge::rivets::features::lib_stop_token == 0);
+#endif
+}
+
+TEST_CASE("BRIDGE_RIVETS_FEATURES_LIB_STOP_TOKEN is #if-usable", "[rivets][features]") {
+#if BRIDGE_RIVETS_FEATURES_LIB_STOP_TOKEN == 0
+    SUCCEED(); // absent everywhere in this project's matrix today
+#elif BRIDGE_RIVETS_FEATURES_LIB_STOP_TOKEN >= 201907L
+    SUCCEED();
+#else
+    FAIL("BRIDGE_RIVETS_FEATURES_LIB_STOP_TOKEN should be 0 or at least the C++20 baseline");
+#endif
+}

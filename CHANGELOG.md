@@ -7,6 +7,15 @@ Versions are CalVer: `YY.MM.MICRO` (see docs/adr/0005-calver-versioning.md).
 ## [Unreleased]
 
 ### Added
+- `rivets/features.hpp`: `__cpp_lib_jthread` and `__cpp_lib_stop_token`
+  Feature Tests (`bridge::rivets::features::lib_jthread`/
+  `lib_stop_token`), first step toward the `jthread`/`stop_token`
+  backport. Confirmed empirically before adding: `lib_jthread` reports
+  `201911L` from `-std=c++20` onward on both GCC (13-15) and Clang
+  (20) in this project's matrix; `lib_stop_token` is `0` on all of
+  them -- libstdc++ never publishes that macro, even though
+  `stop_token` itself works (see `rivets/libstdcxx.hpp`'s Detector,
+  used to override this gap in `deck/cpp17/jthread.hpp`).
 - `rivets/libstdcxx.hpp`: a real libstdc++ version Detector
   (`bridge::rivets::libstdcxx::gt`/`ge`/`lt`/`le`/`eq`,
   `BRIDGE_RIVETS_LIBSTDCXX_*` macros), keyed off `_GLIBCXX_RELEASE`

@@ -51,12 +51,16 @@ int main() {
 |---|---|---|---|
 | `BRIDGE_RIVETS_FEATURES_LIB_EXPECTED` | define | `#if`-usable value of `__cpp_lib_expected`, or `0` if undefined. | [`<version>::BRIDGE_RIVETS_FEATURES_LIB_EXPECTED`](https://en.cppreference.com/w/cpp/feature_test) |
 | `BRIDGE_RIVETS_FEATURES_LIB_FORMAT` | define | `#if`-usable value of `__cpp_lib_format`, or `0` if undefined. | [`<version>::BRIDGE_RIVETS_FEATURES_LIB_FORMAT`](https://en.cppreference.com/w/cpp/feature_test) |
+| `BRIDGE_RIVETS_FEATURES_LIB_JTHREAD` | define | `#if`-usable value of `__cpp_lib_jthread`, or `0` if undefined. | [`<version>::BRIDGE_RIVETS_FEATURES_LIB_JTHREAD`](https://en.cppreference.com/w/cpp/feature_test) |
 | `BRIDGE_RIVETS_FEATURES_LIB_OPTIONAL` | define | `#if`-usable value of `__cpp_lib_optional`, or `0` if undefined. | [`<version>::BRIDGE_RIVETS_FEATURES_LIB_OPTIONAL`](https://en.cppreference.com/w/cpp/feature_test) |
 | `BRIDGE_RIVETS_FEATURES_LIB_PRINT` | define | `#if`-usable value of `__cpp_lib_print`, or `0` if undefined. | [`<version>::BRIDGE_RIVETS_FEATURES_LIB_PRINT`](https://en.cppreference.com/w/cpp/feature_test) |
 | `BRIDGE_RIVETS_FEATURES_LIB_SPAN` | define | `#if`-usable value of `__cpp_lib_span`, or `0` if undefined. | [`<version>::BRIDGE_RIVETS_FEATURES_LIB_SPAN`](https://en.cppreference.com/w/cpp/feature_test) |
+| `BRIDGE_RIVETS_FEATURES_LIB_STOP_TOKEN` | define | `#if`-usable value of `__cpp_lib_stop_token`, or `0` if undefined. | [`<version>::BRIDGE_RIVETS_FEATURES_LIB_STOP_TOKEN`](https://en.cppreference.com/w/cpp/feature_test) |
 | `bridge::rivets::features::lib_expected` | variable | Value of `__cpp_lib_expected`, or `0` if undefined. | [`<version>::lib_expected`](https://en.cppreference.com/w/cpp/feature_test) |
 | `bridge::rivets::features::lib_format` | variable | Value of `__cpp_lib_format`, or `0` if undefined. | [`<version>::lib_format`](https://en.cppreference.com/w/cpp/feature_test) |
+| `bridge::rivets::features::lib_jthread` | variable | Value of `__cpp_lib_jthread`, or `0` if undefined. | [`<version>::lib_jthread`](https://en.cppreference.com/w/cpp/feature_test) |
 | `bridge::rivets::features::lib_optional` | variable | Value of `__cpp_lib_optional`, or `0` if undefined. | [`<version>::lib_optional`](https://en.cppreference.com/w/cpp/feature_test) |
 | `bridge::rivets::features::lib_print` | variable | Value of `__cpp_lib_print`, or `0` if undefined. | [`<version>::lib_print`](https://en.cppreference.com/w/cpp/feature_test) |
 | `bridge::rivets::features::lib_span` | variable | Value of `__cpp_lib_span`, or `0` if undefined. | [`<version>::lib_span`](https://en.cppreference.com/w/cpp/feature_test) |
+| `bridge::rivets::features::lib_stop_token` | variable | Value of `__cpp_lib_stop_token`, or `0` if undefined. | [`<version>::lib_stop_token`](https://en.cppreference.com/w/cpp/feature_test) |
 <!-- BRIDGE-DOCS:END -->
