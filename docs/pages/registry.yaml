@@ -21,6 +21,18 @@
 # scripts/docs-pages.py scaffolds docs/pages/<page> if it doesn't exist
 # yet, then regenerates the marked `headers`/`symbols` blocks inside it
 # from this file and Doxygen's XML output, every docs build.
+#
+# `example_headers` is the dependency-ordered (rivets -> truss -> deck)
+# list of real bridge headers the page's own "## Example" code needs,
+# hand-declared rather than auto-walked from #include directives (the
+# facility's own author already knows the real order; an auto-walker is
+# more moving parts for equivalent value here). scripts/docs-pages.py
+# concatenates these files' contents (with every inter-bridge #include
+# and #pragma once line stripped, since the content is now inlined),
+# appends the Example's own code (same stripping), compiles the result
+# standalone, and encodes it as a Compiler Explorer "Try it" link --
+# failing `./bridge docs` loudly if the flattened form doesn't compile
+# and run cleanly.
 
 facilities:
   - name: optional
@@ -30,12 +42,21 @@ facilities:
     headers:
       - include/truss/cpp17/optional.hpp
       - include/deck/cpp17/optional.hpp
+    example_headers:
+      - include/rivets/features.hpp
+      - include/truss/cpp17/optional.hpp
+      - include/deck/cpp17/optional.hpp
 
   - name: expected
     page: expected.md
     cppreference: https://en.cppreference.com/w/cpp/utility/expected
     header: "<expected>"
     headers:
+      - include/truss/cpp17/expected.hpp
+      - include/deck/cpp17/expected.hpp
+    example_headers:
+      - include/rivets/diagnostics.hpp
+      - include/rivets/features.hpp
       - include/truss/cpp17/expected.hpp
       - include/deck/cpp17/expected.hpp
 
@@ -55,6 +76,13 @@ facilities:
       - include/truss/cpp17/print.hpp
       - include/deck/cpp17/format.hpp
       - include/deck/cpp17/print.hpp
+    example_headers:
+      - include/rivets/diagnostics.hpp
+      - include/rivets/features.hpp
+      - include/truss/cpp17/format.hpp
+      - include/truss/cpp17/print.hpp
+      - include/deck/cpp17/format.hpp
+      - include/deck/cpp17/print.hpp
 
   - name: span
     page: span.md
@@ -64,6 +92,10 @@ facilities:
       - include/truss/cpp17/span.hpp
       - include/deck/cpp17/span.hpp
       # (docs/adr/0015-span-truss-owns-the-class.md, task #80).
+    example_headers:
+      - include/rivets/features.hpp
+      - include/truss/cpp17/span.hpp
+      - include/deck/cpp17/span.hpp
 
   - name: detectors
     page: detectors.md
@@ -79,6 +111,9 @@ facilities:
       - include/rivets/msvc_stl.hpp
       - include/rivets/standard.hpp
       - include/rivets/detail/detector.hpp
+    example_headers:
+      - include/rivets/detail/detector.hpp
+      - include/rivets/gcc.hpp
 
   - name: feature-tests
     page: feature-tests.md
@@ -89,6 +124,8 @@ facilities:
     header: "<version>"
     headers:
       - include/rivets/features.hpp
+    example_headers:
+      - include/rivets/features.hpp
 
   - name: diagnostics
     page: diagnostics.md
@@ -96,11 +133,16 @@ facilities:
     header: null
     headers:
       - include/rivets/diagnostics.hpp
+    example_headers:
+      - include/rivets/diagnostics.hpp
 
   - name: version
     page: version.md
     cppreference: null
     header: null
     headers:
+      - include/truss/cpp17/version.hpp
+      - include/deck/cpp17/version.hpp
+    example_headers:
       - include/truss/cpp17/version.hpp
       - include/deck/cpp17/version.hpp

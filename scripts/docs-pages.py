@@ -6,10 +6,16 @@ this implements: docs/pages/registry.yaml declares a set of
 "facilities" (a conceptual division, e.g. "format-print"), each owning
 a list of header files and a hand-written docs/pages/<name>.md page.
 This script scaffolds a facility's page if it doesn't exist yet, and
-regenerates two machine-owned, marker-delimited blocks inside every
-existing page -- a "headers" list and a "symbols" table pulled from
-Doxygen's own XML output (build/docs/xml) -- leaving hand-written prose
-between/around them untouched.
+regenerates machine-owned, marker-delimited blocks inside every
+existing page (a "headers" list and a "symbols" table pulled from
+Doxygen's own XML output (build/docs/xml), plus a prominent
+cppreference header link) -- leaving hand-written prose between/around
+them untouched. Every facility's hand-written "## Example" section is
+also flattened (concatenated with its `example_headers`, inter-bridge
+includes stripped) and compile-checked standalone under `-std=c++17`,
+failing loudly if it doesn't compile and run cleanly -- this needs a
+C++ compiler on `PATH` (the same one `./bridge probe` picks up),
+including in CI's `check` mode.
 
 Two modes:
   generate  Regenerate in place. Also fails (non-zero exit) if any
@@ -22,7 +28,9 @@ Two modes:
 import argparse
 import difflib
 import re
+import subprocess
 import sys
+import tempfile
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
@@ -303,6 +311,106 @@ def render_symbols_block(facility):
     return "\n".join(lines) + "\n"
 
 
+EXAMPLE_HEADING_RE = re.compile(r"^## Example\s*$", re.MULTILINE)
+CODE_FENCE_RE = re.compile(r"```cpp\n(.*?)\n```", re.DOTALL)
+INTERNAL_INCLUDE_RE = re.compile(r"^#include <(?:rivets|truss|deck)/")
+
+
+def extract_example_code(content, page_name):
+    """Returns the code inside the first ```cpp fence following a
+    "## Example" heading in `content`, or None if there's no such
+    heading yet (a freshly-scaffolded page with no Example section
+    written). Raises if the heading exists but no fenced code follows
+    it -- that's an authoring mistake, not a legitimately-absent
+    section."""
+    heading_match = EXAMPLE_HEADING_RE.search(content)
+    if heading_match is None:
+        return None
+    fence_match = CODE_FENCE_RE.search(content, heading_match.end())
+    if fence_match is None:
+        raise ValueError(f"{page_name}: '## Example' heading found but no ```cpp fenced code block after it")
+    return fence_match.group(1)
+
+
+def strip_internal_lines(text):
+    """Drops every inter-bridge `#include <rivets|truss|deck/...>` and
+    `#pragma once` line from `text` -- used when concatenating a
+    facility's real headers into one flattened translation unit, where
+    that content is already inlined and re-including it (or repeating
+    the include guard) would either double-define everything or, for
+    `#pragma once` specifically, just be dead weight in a single-TU
+    context. Confirmed by hand-flattening `optional`'s real headers
+    this way and compiling the result before writing this generally --
+    a naive concatenation keeping those lines produced actual
+    redefinition errors from the real files also being on the
+    filesystem at their #include path."""
+    kept = []
+    for line in text.splitlines():
+        stripped = line.strip()
+        if stripped == "#pragma once":
+            continue
+        if INTERNAL_INCLUDE_RE.match(stripped):
+            continue
+        kept.append(line)
+    return "\n".join(kept)
+
+
+def flatten_example(facility, example_code):
+    """Concatenates `facility`'s `example_headers` (in the
+    dependency order registry.yaml declares them) with `example_code`,
+    stripping inter-bridge includes/`#pragma once` from all of them,
+    into one standalone translation unit -- no `-I` include path
+    needed to compile it, since every bridge header it depends on is
+    now inlined directly."""
+    parts = [strip_internal_lines((REPO_ROOT / h).read_text()) for h in facility.get("example_headers", [])]
+    parts.append(strip_internal_lines(example_code))
+    return "\n\n".join(parts) + "\n"
+
+
+def compile_check_example(facility, flattened_source, page_name):
+    """Compiles and runs `flattened_source` standalone under this
+    project's floor standard (C++17), the same generic `c++` (not a
+    hardcoded g++/clang++) invocation `./bridge probe` uses, so it
+    picks up whichever devShell's compiler is on `PATH`. Raises with
+    the compiler's/binary's own output on either failure -- a broken
+    on-page Example fails `./bridge docs` loudly, the same
+    empirical-verification discipline this project applies everywhere
+    else, guarding the docs examples against silent rot as headers
+    change."""
+    with tempfile.TemporaryDirectory() as tmp:
+        src_path = Path(tmp) / "example.cpp"
+        bin_path = Path(tmp) / "example_bin"
+        src_path.write_text(flattened_source)
+        compile_result = subprocess.run(
+            ["c++", "-std=c++17", "-Wall", "-Wextra", "-Werror", "-o", str(bin_path), str(src_path)],
+            capture_output=True,
+            text=True,
+        )
+        if compile_result.returncode != 0:
+            raise RuntimeError(
+                f"{page_name}: flattened Example failed to compile under -std=c++17:\n{compile_result.stderr}"
+            )
+        run_result = subprocess.run([str(bin_path)], capture_output=True, text=True)
+        if run_result.returncode != 0:
+            raise RuntimeError(
+                f"{page_name}: flattened Example compiled but failed at runtime "
+                f"(exit {run_result.returncode}):\n{run_result.stdout}{run_result.stderr}"
+            )
+
+
+def verify_example(facility, content):
+    """Extracts, flattens, and compile-checks `facility`'s Example
+    section against `content` (the page's *current*, not yet
+    regenerated, hand-written prose -- the Example section itself is
+    never machine-owned). No-op if the page has no Example section
+    yet (a freshly-scaffolded facility)."""
+    example_code = extract_example_code(content, facility["page"])
+    if example_code is None:
+        return
+    flattened = flatten_example(facility, example_code)
+    compile_check_example(facility, flattened, facility["page"])
+
+
 BLOCK_RENDERERS = {
     "header-link": render_header_link_block,
     "headers": render_headers_block,
@@ -366,6 +474,7 @@ def process(facilities, write):
         page_path = PAGES_DIR / facility["page"]
         if page_path.exists():
             old_content = page_path.read_text()
+            verify_example(facility, old_content)
             new_content = regenerate_blocks(old_content, facility)
         else:
             old_content = None
@@ -404,14 +513,18 @@ def main():
             print(f"  {h}", file=sys.stderr)
         sys.exit(1)
 
-    if args.mode == "generate":
-        process(facilities, write=True)
-        print(f"Regenerated {len(facilities)} facility page(s).")
-        return
+    try:
+        if args.mode == "generate":
+            process(facilities, write=True)
+            print(f"Regenerated {len(facilities)} facility page(s).")
+            return
 
-    # check mode: compute what generate *would* write, diff against
-    # what's actually committed, fail on any mismatch.
-    results = process(facilities, write=False)
+        # check mode: compute what generate *would* write, diff against
+        # what's actually committed, fail on any mismatch.
+        results = process(facilities, write=False)
+    except (RuntimeError, ValueError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        sys.exit(1)
     failed = False
     for page_path, old_content, new_content in results:
         if old_content is None:
