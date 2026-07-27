@@ -225,17 +225,42 @@ def scaffold_content(facility):
     return "\n".join(parts)
 
 
+def replace_block(content, tag, rendered_text, page_name_for_errors):
+    """Rewrites the single BRIDGE-DOCS marker block for `tag` in
+    `content`. Content outside the markers is untouched."""
+    begin = BLOCK_BEGIN.format(tag=tag)
+    pattern = re.compile(re.escape(begin) + r".*?" + re.escape(BLOCK_END), re.DOTALL)
+    replacement = f"{begin}\n{rendered_text}{BLOCK_END}"
+    if pattern.search(content) is None:
+        raise ValueError(f"missing marker block {tag!r} in {page_name_for_errors}")
+    return pattern.sub(lambda _m, r=replacement: r, content, count=1)
+
+
 def regenerate_blocks(content, facility):
     """Rewrites every BRIDGE-DOCS marker block in `content` using this
-    facility's current data. Content outside the markers is untouched."""
+    facility's current data."""
     for tag, renderer in BLOCK_RENDERERS.items():
-        begin = BLOCK_BEGIN.format(tag=tag)
-        pattern = re.compile(re.escape(begin) + r".*?" + re.escape(BLOCK_END), re.DOTALL)
-        replacement = f"{begin}\n{renderer(facility)}{BLOCK_END}"
-        if pattern.search(content) is None:
-            raise ValueError(f"{facility['name']}: missing marker block {tag!r} in {facility['page']}")
-        content = pattern.sub(lambda _m, r=replacement: r, content, count=1)
+        content = replace_block(content, tag, renderer(facility), facility["page"])
     return content
+
+
+def render_facility_index_block(facilities):
+    # \ref, not \subpage: several of these (detectors/feature-tests/
+    # diagnostics) are already \subpage-nested under rivets.md's
+    # hand-written overview, and Doxygen's page tree only allows one
+    # \subpage parent per page. This block is a supplementary flat
+    # A-Z-style index, not the primary hierarchy -- the hand-written
+    # prose around it establishes that via \subpage instead.
+    lines = []
+    for fac in sorted(facilities, key=lambda f: f["name"]):
+        title = fac["name"].replace("-", " ").title()
+        page_id = "page_" + fac["name"].replace("-", "_")
+        lines.append(f"- \\ref {page_id} \"{title}\"")
+    return "\n".join(lines) + "\n"
+
+
+def regenerate_index_block(content, facilities):
+    return replace_block(content, "facilities", render_facility_index_block(facilities), "index.md")
 
 
 def process(facilities, write):
@@ -254,6 +279,19 @@ def process(facilities, write):
         results.append((page_path, old_content, new_content))
         if write:
             page_path.write_text(new_content)
+
+    # docs/pages/index.md isn't a facility itself (docs/adr/0014) --
+    # it's the hand-written mainpage -- but it carries one generated
+    # block of its own: a bullet list `\subpage`-linking every
+    # registered facility, kept in sync the same way.
+    index_path = PAGES_DIR / "index.md"
+    if index_path.exists():
+        old_index = index_path.read_text()
+        new_index = regenerate_index_block(old_index, facilities)
+        results.append((index_path, old_index, new_index))
+        if write:
+            index_path.write_text(new_index)
+
     return results
 
 
