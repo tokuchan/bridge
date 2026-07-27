@@ -15,28 +15,51 @@
 - `include/rivets/detail/detector.hpp`
 <!-- BRIDGE-DOCS:END -->
 
-See \ref page_rivets for the shared mental model (the "sparse
-Cartesian product" and the constexpr/macro dual-form rationale) --
-this page is the reference table for the Entities Rivets detects
-version ranges for. **Standard** (`standard.hpp`), **GCC**, and
-**Clang** are implemented today, each with the same shape: five generic
-comparators (`gt`/`ge`/`lt`/`le`/`eq`) as Layer 1, plus however many
-specific Named Detectors (`bridge::rivets::gcc::ge_13()`,
-`BRIDGE_RIVETS_GCC_GE(13)`) as Layer 2 that this codebase or a consumer
-actually needs -- generated via `BRIDGE_RIVETS_DEFINE_DETECTOR`, never
-hand-written one at a time. **MSVC**, the **MSVC STL**,
-**libstdc++**/**libc++**, and **Boost** are registered facility headers
-but deliberately not yet implemented -- each file documents its own
-intended shape (and, for Boost specifically, why its Layer 1 needs a
-two-component `ge(major, minor)` form the other Entities don't) so the
-design is visible before the real work happens; that's why they don't
-appear in the symbol table below yet. Detectors live directly in their
-own namespace with no Detail/Exports tiering (unlike Truss/Deck's
-facilities): there's never more than one right answer to "is GCC at
-least version 13," so there's nothing for a passthrough-or-polyfill
-selection to choose between. See
-[ADR-0006](https://github.com/tokuchan/bridge/blob/master/docs/adr/0006-detector-naming-calculus.md)
-for the naming calculus behind the Layer 1/Layer 2 split.
+## Synopsis
+
+A Detector answers "what version range is *this specific* compiler or
+library at," as both a `constexpr bool` and an `#if`-usable macro.
+**Standard** (`standard.hpp`), **GCC**, and **Clang** are implemented
+today, each with the same shape: five generic comparators
+(`gt`/`ge`/`lt`/`le`/`eq`) as Layer 1, plus however many specific Named
+Detectors (`bridge::rivets::gcc::ge_13()`, `BRIDGE_RIVETS_GCC_GE(13)`)
+as Layer 2 that this codebase or a consumer actually needs -- generated
+via `BRIDGE_RIVETS_DEFINE_DETECTOR`, never hand-written one at a time.
+See \ref page_rivets for the shared mental model (the "sparse Cartesian
+product" this two-layer split serves).
+
+## Example
+
+```cpp
+#include <rivets/gcc.hpp>
+
+if constexpr (bridge::rivets::gcc::ge(13)) {
+    // GCC 13+: known-good behavior
+} else {
+    // Older GCC, or a different compiler entirely (version == 0)
+}
+
+#if BRIDGE_RIVETS_GCC_GE(13)
+// same check, #if-usable -- e.g. for a #include guard
+#endif
+```
+
+## Notes
+
+- **MSVC**, the **MSVC STL**, **libstdc++**/**libc++**, and **Boost**
+  are registered facility headers but deliberately not yet
+  implemented -- each file documents its own intended shape (and, for
+  Boost specifically, why its Layer 1 needs a two-component
+  `ge(major, minor)` form the other Entities don't) so the design is
+  visible before the real work happens; that's why they don't appear
+  in the symbol table below yet.
+- Detectors live directly in their own namespace with no
+  Detail/Exports tiering (unlike Truss/Deck's facilities): there's
+  never more than one right answer to "is GCC at least version 13," so
+  there's nothing for a passthrough-or-polyfill selection to choose
+  between.
+- See [ADR-0006](https://github.com/tokuchan/bridge/blob/master/docs/adr/0006-detector-naming-calculus.md)
+  for the naming calculus behind the Layer 1/Layer 2 split.
 
 <!-- BRIDGE-DOCS:BEGIN symbols -->
 | Symbol | Kind | Brief |
