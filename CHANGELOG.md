@@ -7,6 +7,25 @@ Versions are CalVer: `YY.MM.MICRO` (see docs/adr/0005-calver-versioning.md).
 ## [Unreleased]
 
 ### Added
+- Truss's top-level format entry points: `format`, `format_to`
+  (generic over any output iterator), `format_to_n`, `formatted_size`,
+  and `vformat` (with `format_args`/`make_format_args`, a type-erased
+  argument pack scoped to `vformat` alone -- this polyfill's scope
+  doesn't include `vformat_to`, so unlike real `std::format_args` it
+  doesn't need to stay generic over arbitrary output iterators, only
+  `std::string`). Also `format_string<Args...>`, a thin wrapper
+  implicitly constructible from a string literal, matching real
+  `std::format_string`'s shape without its `consteval` compile-time
+  validation (C++17 has no `consteval` to do that with -- disclosed in
+  `docs/adr/0012`). Runtime dispatch from a format string's arg-id to
+  the right argument in a compile-time `Args...` pack uses a fold
+  expression over `std::index_sequence`, shared (via the same shape,
+  duplicated once for the type-erased path) between `format_to` and
+  `vformat`. Verified against real `std::format`/`std::vformat`
+  directly: escaped braces, automatic/manual/mixed argument indexing,
+  dynamic width/precision, `format_to_n`'s truncation-with-untruncated-
+  size contract, and error cases (unmatched braces, out-of-range and
+  mixed indices) all cross-checked before writing the Catch2 suite.
 - Truss's built-in `formatter<T>` specializations: integer types,
   `bool`, `char`, floating point, pointers (`void*`/`const void*`/
   `nullptr_t`), and the string family (`const char*`/`char*`/

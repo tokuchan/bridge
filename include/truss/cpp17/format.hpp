@@ -29,9 +29,11 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <iterator>
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <tuple>
 #include <type_traits>
 #include <utility>
 
@@ -1001,12 +1003,406 @@ private:
     parsed_std_spec spec_{};
 };
 
+/// @brief A format string, implicitly constructible from anything
+///        convertible to `std::string_view` (matching real
+///        `std::format_string<Args...>`'s converting-constructor
+///        shape). Unlike the real type, this constructor does **not**
+///        validate the format string at compile time -- C++17 has no
+///        `consteval` to do that with (docs/adr/0012's disclosed
+///        compile-time-validation gap). Validation happens only when
+///        the string is actually used to format, at which point a
+///        malformed spec throws `format_error` same as `vformat`'s
+///        contract always has.
+/// @tparam Args The argument types this format string is meant to be
+///         used with (unused by this type itself; carried only so
+///         `format`/`format_to`/etc.'s signatures match the real ones).
+template <class... Args>
+class format_string {
+public:
+    /// @brief Converts from anything convertible to `std::string_view`.
+    /// @tparam T The source type.
+    /// @param s The format string.
+    template <class T, class = std::enable_if_t<std::is_convertible_v<const T&, std::string_view>>>
+    constexpr format_string(const T& s) noexcept : fmt_(s) {}
+
+    /// @brief The underlying format string.
+    /// @return The format string as a `std::string_view`.
+    constexpr std::string_view get() const noexcept { return fmt_; }
+
+private:
+    std::string_view fmt_;
+};
+
+/// \cond BRIDGE_DETAIL
+///
+/// The parsing/dispatch engine shared by every top-level entry point
+/// below, plus the runtime-index-into-compile-time-argument-pack
+/// dispatch `format_to`/`format`/`format_to_n`/`formatted_size` use,
+/// and the type-erased equivalent `vformat`/`format_args` use. Pure
+/// implementation plumbing, excluded from the documentation-coverage
+/// gate for the same reason as `field_writers` above.
+namespace engine {
+
+template <class T>
+long long as_dynamic_value(const T& v) {
+    if constexpr (std::is_integral_v<T> && !std::is_same_v<T, bool>) {
+        return static_cast<long long>(v);
+    } else {
+        throw format_error("dynamic width/precision argument is not an integer");
+    }
+}
+
+template <class Tuple, std::size_t... I>
+long long get_dynamic_impl(std::size_t index, Tuple& t, std::index_sequence<I...>) {
+    long long result = 0;
+    bool handled = ((index == I && (result = as_dynamic_value(std::get<I>(t)), true)) || ...);
+    if (!handled) throw format_error("dynamic width/precision argument index out of range");
+    return result;
+}
+
+template <class FormatContext, class T>
+void format_one(format_parse_context& pctx, FormatContext& ctx, T&& value) {
+    using U = std::decay_t<T>;
+    formatter<U> f;
+    auto it = f.parse(pctx);
+    pctx.advance_to(it);
+    f.format(value, ctx);
+}
+
+template <class FormatContext, class Tuple, std::size_t... I>
+void dispatch_impl(std::size_t index, format_parse_context& pctx, FormatContext& ctx, Tuple& t,
+                    std::index_sequence<I...>) {
+    bool handled = ((index == I && (format_one(pctx, ctx, std::get<I>(t)), true)) || ...);
+    if (!handled) throw format_error("argument index out of range");
+}
+
+/// @brief Walks `fmt`, copying literal text (handling `{{`/`}}`
+///        escapes) and dispatching each replacement field to
+///        `dispatch`. `dispatch(index, pctx, ctx)` is responsible for
+///        calling that argument's `formatter<T>::parse`/`format` and
+///        advancing `pctx` past the spec it consumed; this function
+///        handles everything else (arg-id parsing/auto-vs-manual
+///        indexing, locating and consuming the field's closing `}`,
+///        literal-text copying).
+template <class OutIt, class Dispatch>
+OutIt format_engine(std::string_view fmt, OutIt out, const dynamic_arg_source& src, std::size_t num_args,
+                     Dispatch&& dispatch) {
+    format_parse_context pctx(fmt, num_args);
+    format_context<OutIt> ctx(out, src);
+    auto it = pctx.begin();
+    auto end = pctx.end();
+    while (it != end) {
+        char c = *it;
+        if (c == '{') {
+            ++it;
+            if (it != end && *it == '{') {
+                auto o = ctx.out();
+                *o++ = '{';
+                ctx.advance_to(o);
+                ++it;
+                pctx.advance_to(it);
+                continue;
+            }
+            std::size_t index;
+            if (it != end && *it >= '0' && *it <= '9') {
+                std::size_t id = 0;
+                while (it != end && *it >= '0' && *it <= '9') {
+                    id = id * 10 + static_cast<std::size_t>(*it - '0');
+                    ++it;
+                }
+                pctx.advance_to(it);
+                pctx.check_arg_id(id);
+                index = id;
+            } else {
+                pctx.advance_to(it);
+                index = pctx.next_arg_id();
+                it = pctx.begin();
+            }
+            if (it != end && *it == ':') {
+                ++it;
+                pctx.advance_to(it);
+            }
+            dispatch(index, pctx, ctx);
+            it = pctx.begin();
+            if (it == end || *it != '}') throw format_error("expected '}' in format string");
+            ++it;
+            pctx.advance_to(it);
+        } else if (c == '}') {
+            ++it;
+            if (it != end && *it == '}') {
+                auto o = ctx.out();
+                *o++ = '}';
+                ctx.advance_to(o);
+                ++it;
+                pctx.advance_to(it);
+                continue;
+            }
+            throw format_error("unmatched '}' in format string");
+        } else {
+            auto start = it;
+            while (it != end && *it != '{' && *it != '}') ++it;
+            auto o = ctx.out();
+            for (auto p = start; p != it; ++p) *o++ = *p;
+            ctx.advance_to(o);
+            pctx.advance_to(it);
+        }
+    }
+    return ctx.out();
+}
+
+/// @brief Output iterator that counts every assignment (whether or not
+///        it writes through) and only writes through to `out_` while
+///        under `max_count_` -- the mechanism `format_to_n` uses to
+///        report the full untruncated size while only actually writing
+///        up to `n` characters.
+template <class OutIt>
+class counted_output_iterator {
+public:
+    using iterator_category = std::output_iterator_tag;
+    using value_type = void;
+    using difference_type = std::ptrdiff_t;
+    using pointer = void;
+    using reference = void;
+
+    counted_output_iterator(OutIt out, std::ptrdiff_t max_count) : out_(out), max_count_(max_count) {}
+    counted_output_iterator& operator*() { return *this; }
+    counted_output_iterator& operator++() { return *this; }
+    counted_output_iterator& operator++(int) { return *this; }
+    counted_output_iterator& operator=(char c) {
+        if (count_ < max_count_) {
+            *out_ = c;
+            ++out_;
+        }
+        ++count_;
+        return *this;
+    }
+
+    std::ptrdiff_t count() const noexcept { return count_; }
+    OutIt base() const { return out_; }
+
+private:
+    OutIt out_;
+    std::ptrdiff_t max_count_;
+    std::ptrdiff_t count_ = 0;
+};
+
+/// @brief Output iterator that only counts, for `formatted_size`.
+class counting_output_iterator {
+public:
+    using iterator_category = std::output_iterator_tag;
+    using value_type = void;
+    using difference_type = std::ptrdiff_t;
+    using pointer = void;
+    using reference = void;
+
+    counting_output_iterator& operator*() { return *this; }
+    counting_output_iterator& operator++() { return *this; }
+    counting_output_iterator& operator++(int) { return *this; }
+    counting_output_iterator& operator=(char) {
+        ++count_;
+        return *this;
+    }
+
+    std::size_t count() const noexcept { return count_; }
+
+private:
+    std::size_t count_ = 0;
+};
+
+} // namespace engine
+/// \endcond
+
+/// @brief The result of `format_to_n`: `out` is an iterator one past
+///        the last element actually written; `size` is the total
+///        number of characters that *would* have been written for an
+///        unlimited output size, matching real `std::format_to_n_result`.
+/// @tparam OutIt The output iterator type.
+template <class OutIt>
+struct format_to_n_result {
+    /// @brief One past the last element actually written.
+    OutIt out;
+    /// @brief The total number of characters that would have been
+    ///        written for an unlimited output size.
+    std::ptrdiff_t size;
+};
+
+/// @brief Formats `args` according to `fmt`, writing to `out`. Generic
+///        over any output iterator, matching the real signature (not
+///        a curated fixed set of sinks).
+/// @tparam OutIt The output iterator type.
+/// @tparam Args The argument types.
+/// @param out The output iterator.
+/// @param fmt The format string.
+/// @param args The arguments to format.
+/// @return An iterator one past the last character written.
+/// @throws format_error if `fmt` is malformed or references an
+///         out-of-range or type-mismatched argument.
+template <class OutIt, class... Args>
+OutIt format_to(OutIt out, format_string<std::decay_t<Args>...> fmt, Args&&... args) {
+    auto args_tuple = std::forward_as_tuple(std::forward<Args>(args)...);
+    dynamic_arg_source src([&args_tuple](std::size_t index) -> long long {
+        return engine::get_dynamic_impl(index, args_tuple, std::index_sequence_for<Args...>{});
+    });
+    return engine::format_engine(fmt.get(), out, src, sizeof...(Args),
+                                  [&](std::size_t index, format_parse_context& pctx, auto& ctx) {
+                                      engine::dispatch_impl(index, pctx, ctx, args_tuple,
+                                                             std::index_sequence_for<Args...>{});
+                                  });
+}
+
+/// @brief Formats `args` according to `fmt`, returning the result as a
+///        new `std::string`.
+/// @tparam Args The argument types.
+/// @param fmt The format string.
+/// @param args The arguments to format.
+/// @return The formatted string.
+/// @throws format_error if `fmt` is malformed or references an
+///         out-of-range or type-mismatched argument.
+template <class... Args>
+std::string format(format_string<std::decay_t<Args>...> fmt, Args&&... args) {
+    std::string result;
+    format_to(std::back_inserter(result), fmt, std::forward<Args>(args)...);
+    return result;
+}
+
+/// @brief Formats `args` according to `fmt`, writing at most `n`
+///        characters to `out`.
+/// @tparam OutIt The output iterator type.
+/// @tparam Args The argument types.
+/// @param out The output iterator.
+/// @param n The maximum number of characters to write.
+/// @param fmt The format string.
+/// @param args The arguments to format.
+/// @return The iterator one past the last element actually written,
+///         and the total (untruncated) size, per `format_to_n_result`.
+/// @throws format_error if `fmt` is malformed or references an
+///         out-of-range or type-mismatched argument.
+template <class OutIt, class... Args>
+format_to_n_result<OutIt> format_to_n(OutIt out, std::ptrdiff_t n, format_string<std::decay_t<Args>...> fmt,
+                                       Args&&... args) {
+    engine::counted_output_iterator<OutIt> counted(out, n);
+    auto result = format_to(counted, fmt, std::forward<Args>(args)...);
+    return format_to_n_result<OutIt>{result.base(), result.count()};
+}
+
+/// @brief Computes the length `format(fmt, args...)` would produce,
+///        without building the string.
+/// @tparam Args The argument types.
+/// @param fmt The format string.
+/// @param args The arguments to format.
+/// @return The length, in characters.
+/// @throws format_error if `fmt` is malformed or references an
+///         out-of-range or type-mismatched argument.
+template <class... Args>
+std::size_t formatted_size(format_string<std::decay_t<Args>...> fmt, Args&&... args) {
+    engine::counting_output_iterator counter;
+    auto result = format_to(counter, fmt, std::forward<Args>(args)...);
+    return result.count();
+}
+
+/// @brief Type-erased argument pack for @ref vformat, constructed via
+///        `make_format_args`. Narrower in scope than real
+///        `std::format_args`: pinned to `format_context<
+///        std::back_insert_iterator<std::string>>` rather than generic
+///        over any output iterator, since this polyfill's scope
+///        doesn't include `vformat_to` (only plain `vformat`, which
+///        always targets `std::string`) -- a direct, disclosed
+///        consequence of docs/adr/0012's scope decision, not a
+///        separate divergence in its own right.
+class format_args {
+public:
+    /// @brief Dispatches to argument `index`'s `formatter<T>::parse`/
+    ///        `format`, matching the compile-time-pack dispatch
+    ///        `format_to` uses but through this type-erased path.
+    /// @param index The argument index.
+    /// @param pctx The parse context, positioned at the field's spec.
+    /// @param ctx The output context.
+    void format_arg(std::size_t index, format_parse_context& pctx,
+                     format_context<std::back_insert_iterator<std::string>>& ctx) const {
+        format_fn_(index, pctx, ctx);
+    }
+
+    /// @brief Resolves dynamic width/precision argument `index`.
+    /// @param index The argument index.
+    /// @return The argument's value as a `long long`.
+    long long dynamic_arg(std::size_t index) const { return dynamic_fn_(index); }
+
+    /// @brief The number of arguments.
+    /// @return The argument count.
+    std::size_t count() const noexcept { return count_; }
+
+private:
+    template <class... Args>
+    friend format_args make_format_args(Args&... args);
+
+    std::function<void(std::size_t, format_parse_context&, format_context<std::back_insert_iterator<std::string>>&)>
+        format_fn_;
+    std::function<long long(std::size_t)> dynamic_fn_;
+    std::size_t count_ = 0;
+};
+
+/// @brief Constructs a type-erased `format_args` from `args`, for
+///        `vformat`. Matches real `std::make_format_args`' shape
+///        (lvalue references -- called with the named parameters of
+///        whatever function is forwarding into `vformat`, which are
+///        themselves lvalues regardless of the original argument's
+///        value category). The result is only valid for the duration
+///        of the full expression that calls `vformat` with it, same
+///        lifetime constraint as the real function.
+/// @tparam Args The argument types.
+/// @param args The arguments.
+/// @return The type-erased argument pack.
+template <class... Args>
+format_args make_format_args(Args&... args) {
+    format_args fa;
+    fa.count_ = sizeof...(Args);
+    fa.format_fn_ = [&args...](std::size_t index, format_parse_context& pctx,
+                                format_context<std::back_insert_iterator<std::string>>& ctx) {
+        auto t = std::forward_as_tuple(args...);
+        engine::dispatch_impl(index, pctx, ctx, t, std::index_sequence_for<Args...>{});
+    };
+    fa.dynamic_fn_ = [&args...](std::size_t index) -> long long {
+        auto t = std::forward_as_tuple(args...);
+        return engine::get_dynamic_impl(index, t, std::index_sequence_for<Args...>{});
+    };
+    return fa;
+}
+
+/// @brief Formats a type-erased argument pack according to `fmt`,
+///        returning the result as a new `std::string`. Unlike
+///        `format`, `fmt` is a plain `std::string_view` -- `vformat`
+///        is explicitly the "runtime format string, no format-string-
+///        specific type" entry point, matching real `std::vformat`.
+/// @param fmt The format string.
+/// @param args The type-erased arguments, from `make_format_args`.
+/// @return The formatted string.
+/// @throws format_error if `fmt` is malformed or references an
+///         out-of-range or type-mismatched argument.
+inline std::string vformat(std::string_view fmt, format_args args) {
+    std::string result;
+    dynamic_arg_source src([&args](std::size_t index) -> long long { return args.dynamic_arg(index); });
+    engine::format_engine(fmt, std::back_inserter(result), src, args.count(),
+                           [&](std::size_t index, format_parse_context& pctx, auto& ctx) {
+                               args.format_arg(index, pctx, ctx);
+                           });
+    return result;
+}
+
 /// @brief Symbols promoted to `bridge::exports::truss`.
 namespace exports {
 using bridge::detail::truss::cpp17::format::format_error;
 using bridge::detail::truss::cpp17::format::format_parse_context;
 using bridge::detail::truss::cpp17::format::format_context;
 using bridge::detail::truss::cpp17::format::formatter;
+using bridge::detail::truss::cpp17::format::format_string;
+using bridge::detail::truss::cpp17::format::format_to_n_result;
+using bridge::detail::truss::cpp17::format::format_to;
+using bridge::detail::truss::cpp17::format::format;
+using bridge::detail::truss::cpp17::format::format_to_n;
+using bridge::detail::truss::cpp17::format::formatted_size;
+using bridge::detail::truss::cpp17::format::format_args;
+using bridge::detail::truss::cpp17::format::make_format_args;
+using bridge::detail::truss::cpp17::format::vformat;
 } // namespace exports
 
 } // namespace bridge::detail::truss::cpp17::format
@@ -1033,4 +1429,13 @@ using bridge::exports::truss::format_error;
 using bridge::exports::truss::format_parse_context;
 using bridge::exports::truss::format_context;
 using bridge::exports::truss::formatter;
+using bridge::exports::truss::format_string;
+using bridge::exports::truss::format_to_n_result;
+using bridge::exports::truss::format_to;
+using bridge::exports::truss::format;
+using bridge::exports::truss::format_to_n;
+using bridge::exports::truss::formatted_size;
+using bridge::exports::truss::format_args;
+using bridge::exports::truss::make_format_args;
+using bridge::exports::truss::vformat;
 } // namespace bridge::truss
