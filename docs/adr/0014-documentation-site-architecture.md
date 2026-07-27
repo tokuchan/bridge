@@ -176,6 +176,26 @@ locally and what actually builds the deployed site. Deliberately
 they've always been; wiring those into CI is a separate decision for
 another day, not a natural extension of "host the docs."
 
+### CONTEXT.md and every ADR fold into the site as plain Markdown, unmodified
+
+Both were originally left outside Doxygen's `INPUT` entirely, so every
+facility page's "see CONTEXT.md"/"see ADR-0010" reference sent a reader
+off-site to GitHub for the actual content. Both are now added to
+`INPUT` (`Doxyfile.in`) as-is -- no `\page` directive injected into
+either file. Doxygen renders a `.md` file into a page even without one,
+auto-titling and auto-generating its page ID from the file path;
+cross-linking (`\ref`, or a plain relative Markdown link the way
+CONTEXT.md already links to ADRs) still resolves correctly against
+that auto-generated name, confirmed by building the site and checking
+the rendered links, not assumed.
+
+Considered and rejected: injecting `\page adr_0010 ...` at the top of
+each ADR for cleaner page IDs. Both files are explicitly meant to be
+read directly on GitHub too (an ADR's whole purpose includes being
+skimmable in a PR diff or a repo browse) -- Doxygen-specific markup
+would render as stray literal text there, a real cost for a purely
+cosmetic gain in page-ID friendliness.
+
 ## Consequences
 
 - `python3` (with `pyyaml` via `python3.withPackages`, not `uv`) joins
@@ -211,3 +231,8 @@ another day, not a natural extension of "host the docs."
   cppreference link lands on `format`'s cppreference page, not
   `print`'s own -- disclosed here and in the page's own prose, not
   silently wrong.
+- Facility pages can now `\ref`/link to a specific ADR or to
+  CONTEXT.md's glossary entries in-site, instead of only ever pointing
+  out to a GitHub blob URL -- existing facility pages still use the
+  GitHub-URL form from when this ADR first shipped; migrating them to
+  in-site links is incremental cleanup, not required by this change.

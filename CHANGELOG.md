@@ -7,6 +7,11 @@ Versions are CalVer: `YY.MM.MICRO` (see docs/adr/0005-calver-versioning.md).
 ## [Unreleased]
 
 ### Added
+- CONTEXT.md and every `docs/adr/*.md` fold into the generated
+  documentation site (docs/adr/0014's amendment): added to Doxygen's
+  `INPUT` as-is, no `\page` directive injected, so both stay 100%
+  plain, portable Markdown -- identical rendering on GitHub and in the
+  site, with cross-links resolving automatically either way.
 - Truss's `std::span<T, Extent>` polyfill, in a new
   `include/truss/cpp17/span.hpp`: a from-scratch class (docs/adr/0015),
   full static+dynamic extent parity (including the storage-layout

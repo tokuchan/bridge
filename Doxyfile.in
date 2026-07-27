@@ -14,6 +14,15 @@ FILE_PATTERNS            = *.hpp *.h
 INPUT                   += @CMAKE_SOURCE_DIR@/docs/pages
 FILE_PATTERNS            += *.md
 
+# CONTEXT.md and every ADR fold into the generated site as-is (docs/
+# adr/0014's amendment) -- no \page directive injected into either, so
+# both stay 100% plain, portable Markdown: identical rendering here
+# and on GitHub, where ADRs are explicitly also meant to be read.
+# Doxygen auto-titles/auto-IDs a page from its file path when no
+# \page command is present.
+INPUT                   += @CMAKE_SOURCE_DIR@/CONTEXT.md
+INPUT                   += @CMAKE_SOURCE_DIR@/docs/adr
+
 # EXTRACT_ALL=YES would suppress WARN_IF_UNDOCUMENTED entirely (Doxygen
 # treats "extract everything anyway" and "warn about undocumented entities"
 # as mutually exclusive). NO is required for undocumented entities to
