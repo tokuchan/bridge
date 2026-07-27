@@ -7,6 +7,14 @@ Versions are CalVer: `YY.MM.MICRO` (see docs/adr/0005-calver-versioning.md).
 ## [Unreleased]
 
 ### Added
+- Truss's `print`/`println`, in a new `include/truss/cpp17/print.hpp`:
+  both `FILE*`-targeting and `ostream`-targeting overload families
+  (plus the implicit-stdout no-stream forms), built on this same
+  library's `format` unconditionally -- confirmed via benchmark
+  (`docs/adr/0012`) that a hypothetical native-`std::format`-backed
+  alternative isn't worth the architectural exception it would
+  require. Completes Truss's `format`/`print` polyfill; Deck's
+  alias-selection for both lands in follow-up commits.
 - Truss's top-level format entry points: `format`, `format_to`
   (generic over any output iterator), `format_to_n`, `formatted_size`,
   and `vformat` (with `format_args`/`make_format_args`, a type-erased
