@@ -55,8 +55,7 @@ public:
     /// @brief See bridge::truss::and_then. Wraps the result back into
     ///        `optional` (even when `f` returned a plain `std::optional`)
     ///        so chained calls (`.and_then(...).and_then(...)`) keep
-    ///        working — confirmed necessary by a chained-call test
-    ///        failing without this, not assumed upfront.
+    ///        working.
     /// @param f A callable returning a `std::optional` specialization
     ///           (Truss's or Deck's own).
     /// @return `f`'s result, or an empty instance of its optional type.

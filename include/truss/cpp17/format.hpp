@@ -669,12 +669,13 @@ void write_integer_value(format_context<OutIt>& ctx, bool negative, U uval, cons
 } // namespace field_writers
 /// \endcond
 
-/// @brief `formatter<T>` for integer types (matching real
-///        `std::formatter`'s integer specializations): presentation
-///        types `d` (default), `b`/`B`, `o`, `x`/`X`. Precision isn't
-///        valid for integers, matching real `std::format` (confirmed
-///        by hitting its actual compile-time rejection of
-///        `"{:.2}"` against an `int` argument, not assumed).
+/// @brief `formatter<T>` for integer types: presentation types `d`
+///        (default), `b`/`B`, `o`, `x`/`X`. Precision isn't valid.
+///
+///        Matches real `std::formatter`'s integer specializations,
+///        including precision's rejection (confirmed by hitting its
+///        actual compile-time rejection of `"{:.2}"` against an `int`
+///        argument, not assumed).
 template <class T>
 struct formatter<T, std::enable_if_t<is_formattable_integral_v<T>>> {
     /// @brief Parses the format-spec.
@@ -715,9 +716,10 @@ private:
 /// @brief `formatter<bool>`: default/`s` presentation writes `"true"`/
 ///        `"false"` (string-like, left-aligned by default); numeric
 ///        presentations (`d`/`b`/`B`/`o`/`x`/`X`) treat it as `0`/`1`.
-///        Precision isn't valid, matching real `std::format`
-///        (confirmed by hitting its actual compile-time rejection,
-///        not assumed).
+///        Precision isn't valid.
+///
+///        Matches real `std::format` (confirmed by hitting its actual
+///        compile-time rejection of precision, not assumed).
 template <>
 struct formatter<bool> {
     /// @brief Parses the format-spec.
@@ -913,10 +915,12 @@ private:
 /// @brief `formatter<T>` for pointer types (`void*`, `const void*`,
 ///        `std::nullptr_t`): presentation `p` (default and only valid
 ///        type) writes `0x` followed by the address in lowercase hex,
-///        no leading zeros, right-aligned by default -- confirmed
-///        against real `std::format`'s actual output (including that
-///        `nullptr` formats as `"0x0"`, not zero-padded to pointer
-///        width), not assumed. Precision isn't valid.
+///        no leading zeros, right-aligned by default. Precision isn't
+///        valid.
+///
+///        Confirmed against real `std::format`'s actual output
+///        (including that `nullptr` formats as `"0x0"`, not
+///        zero-padded to pointer width), not assumed.
 template <class T>
 struct formatter<T, std::enable_if_t<std::is_same_v<T, const void*> || std::is_same_v<T, void*> ||
                                       std::is_same_v<T, std::nullptr_t>>> {

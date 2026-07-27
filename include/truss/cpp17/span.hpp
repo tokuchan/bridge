@@ -1,9 +1,10 @@
 /// @file span.hpp
-/// @brief Truss's from-scratch `std::span<T, Extent>` polyfill for
-///        C++17. `span` doesn't exist at all before C++20 — like
-///        `expected` (docs/adr/0010-expected-truss-owns-the-class.md),
-///        there's no pre-existing C++17 type for Truss to attach free
-///        functions onto, so Truss owns a complete class instead. See
+/// @brief Truss's from-scratch `std::span<T, Extent>` polyfill for C++17.
+///
+///        `span` doesn't exist at all before C++20 -- like `expected`
+///        (docs/adr/0010-expected-truss-owns-the-class.md), there's no
+///        pre-existing C++17 type for Truss to attach free functions
+///        onto, so Truss owns a complete class instead. See
 ///        docs/adr/0015-span-truss-owns-the-class.md for the full
 ///        fidelity scope: both static and dynamic `Extent` are
 ///        supported in full (including the storage-layout difference
@@ -15,10 +16,11 @@
 ///        (`get<I>`, structured bindings) is a disclosed, deferred
 ///        follow-up.
 ///
-/// `bridge::truss::span<T, Extent>` is unconditionally this polyfill,
-/// regardless of standard or toolchain — that selection happens
-/// exactly once, in Deck (`deck/cpp17/span.hpp`), independent of
-/// whatever other facility Deck is selecting elsewhere.
+///        `bridge::truss::span<T, Extent>` is unconditionally this
+///        polyfill, regardless of standard or toolchain -- that
+///        selection happens exactly once, in Deck
+///        (`deck/cpp17/span.hpp`), independent of whatever other
+///        facility Deck is selecting elsewhere.
 #pragma once
 
 #include <array>
@@ -155,14 +157,16 @@ public:
     template <std::size_t N>
     constexpr span(element_type (&arr)[N]) noexcept : base(arr, N) {}
 
-    /// @brief Constructs from a mutable `std::array`. Constrained the
-    ///        same way as the C array/vector/string overloads below
-    ///        (`U(*)[]` convertible to `element_type(*)[]`) -- without
-    ///        this, `is_constructible_v` reports true for combinations
-    ///        that would need to silently discard `const` in the
-    ///        constructor body, confirmed by hitting exactly that
-    ///        false-positive `is_constructible_v` result before adding
-    ///        the constraint, not assumed.
+    /// @brief Constructs from a mutable `std::array`.
+    ///
+    ///        Constrained the same way as the C array/vector/string
+    ///        overloads below (`U(*)[]` convertible to
+    ///        `element_type(*)[]`) -- without this, `is_constructible_v`
+    ///        reports true for combinations that would need to
+    ///        silently discard `const` in the constructor body,
+    ///        confirmed by hitting exactly that false-positive
+    ///        `is_constructible_v` result before adding the
+    ///        constraint, not assumed.
     /// @param arr The array. Must outlive this span.
     template <class U, std::size_t N, class = std::enable_if_t<std::is_convertible_v<U (*)[], element_type (*)[]>>>
     constexpr span(std::array<U, N>& arr) noexcept : base(arr.data(), N) {}
@@ -198,15 +202,17 @@ public:
     constexpr span(const std::string& str) noexcept : base(str.data(), str.size()) {}
 
     /// @brief Converting constructor from a span of a different
-    ///        extent (and possibly cv-qualification). Constrained on
-    ///        array-pointer convertibility -- `U(*)[]` convertible to
-    ///        `element_type(*)[]` -- matching real `std::span`'s own
-    ///        element-type constraint exactly: true only when `U` and
-    ///        `T` are the same type up to cv-qualification, never for
-    ///        a derived-to-base element type, confirmed via probe
-    ///        (`span<Derived>` does not convert to, nor is even
-    ///        explicitly constructible into, `span<Base>`) rather than
-    ///        assumed.
+    ///        extent, constrained to same-type-up-to-cv-qualification
+    ///        elements (never derived-to-base).
+    ///
+    ///        Constrained on array-pointer convertibility -- `U(*)[]`
+    ///        convertible to `element_type(*)[]` -- matching real
+    ///        `std::span`'s own element-type constraint exactly: true
+    ///        only when `U` and `T` are the same type up to
+    ///        cv-qualification, never for a derived-to-base element
+    ///        type, confirmed via probe (`span<Derived>` does not
+    ///        convert to, nor is even explicitly constructible into,
+    ///        `span<Base>`) rather than assumed.
     ///
     ///        Real `std::span` is conditionally `explicit` here --
     ///        `explicit(Extent != dynamic_extent && OtherExtent ==
@@ -309,10 +315,9 @@ public:
         return span<element_type, Count>(data(), Count);
     }
 
-    /// @brief The first `count` elements, as a dynamic-extent span --
-    ///        always `dynamic_extent`, even called on a fixed-extent
-    ///        span, matching real `std::span::first(size_type)`
-    ///        (confirmed via probe, not assumed).
+    /// @brief The first `count` elements. Always `dynamic_extent`,
+    ///        even called on a fixed-extent span, matching real
+    ///        `std::span::first(size_type)`.
     /// @param count The number of elements.
     /// @return The sub-span.
     constexpr span<element_type, dynamic_extent> first(size_type count) const {
@@ -339,8 +344,7 @@ public:
     /// @brief A sub-view starting at `Offset`, of `Count` elements (or
     ///        the remainder, if `Count == dynamic_extent`). The result
     ///        extent is computed at compile time, matching real
-    ///        `std::span::subspan<Offset, Count>()` exactly (confirmed
-    ///        via probe, not assumed).
+    ///        `std::span::subspan<Offset, Count>()` exactly.
     /// @tparam Offset The starting offset, known at compile time.
     /// @tparam Count The number of elements, or `dynamic_extent`
     ///         (the default) for the remainder.

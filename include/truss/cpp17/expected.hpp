@@ -147,13 +147,15 @@ public:
         return lhs.val_ == rhs.error();
     }
 
-    /// @brief Compares the wrapped errors for inequality. `std::unexpected`
-    ///        only defines `operator==`, relying on C++20's automatic
-    ///        `!=` rewriting from it -- unavailable to code compiled as
-    ///        C++17, this header's floor, so this polyfill defines `!=`
-    ///        explicitly to match usability under passthrough (confirmed
-    ///        `!=` alone genuinely fails to compile without this under
-    ///        `-std=c++17`, not assumed).
+    /// @brief Compares the wrapped errors for inequality.
+    ///
+    ///        `std::unexpected` only defines `operator==`, relying on
+    ///        C++20's automatic `!=` rewriting from it -- unavailable
+    ///        to code compiled as C++17, this header's floor, so this
+    ///        polyfill defines `!=` explicitly to match usability
+    ///        under passthrough (confirmed `!=` alone genuinely fails
+    ///        to compile without this under `-std=c++17`, not
+    ///        assumed).
     /// @param lhs The left-hand `unexpected`.
     /// @param rhs The right-hand `unexpected`, possibly of a different
     ///            error type.
@@ -994,13 +996,14 @@ public:
     }
 
     /// @brief The contained error, or `g` converted to `E` if this
-    ///        holds a value. Not part of the original `std::expected`
-    ///        proposal (P0323R12 explicitly excluded it), but present
-    ///        under the same `__cpp_lib_expected` value as the rest of
-    ///        the type on every ecosystem this project's compiler
-    ///        matrix covers -- confirmed by direct compile probe before
-    ///        relying on it, not assumed. See
-    ///        docs/adr/0010-expected-truss-owns-the-class.md.
+    ///        holds a value.
+    ///
+    ///        Not part of the original `std::expected` proposal
+    ///        (P0323R12 explicitly excluded it), but present under the
+    ///        same `__cpp_lib_expected` value as the rest of the type
+    ///        on every ecosystem this project's compiler matrix covers
+    ///        -- confirmed by direct compile probe before relying on
+    ///        it, not assumed. See docs/adr/0010-expected-truss-owns-the-class.md.
     /// @param g The fallback error.
     /// @return A copy of the contained error, or `g` converted to `E`.
     template <class G>
@@ -1235,15 +1238,18 @@ public:
         return expected<T, G>(unexpect_t{}, std::invoke(std::forward<F>(f), std::move(error())));
     }
 
-    /// @brief Destroys whatever this held and constructs a new value in
-    ///        place from `args`. Constrained to `is_nothrow_constructible_v<T,
-    ///        Args...>`, matching `std::expected` exactly -- confirmed
-    ///        necessary by hitting a real compile error against the
-    ///        real type without it (this polyfill was, incorrectly,
-    ///        unconditionally permissive here), not assumed. Destroying
-    ///        the old alternative before constructing the new one is
-    ///        only exception-safe when the new construction can't
-    ///        throw, which is exactly what this constraint guarantees.
+    /// @brief Destroys whatever this held and constructs a new value
+    ///        in place from `args`. Constrained to
+    ///        `is_nothrow_constructible_v<T, Args...>`, matching
+    ///        `std::expected` exactly.
+    ///
+    ///        Destroying the old alternative before constructing the
+    ///        new one is only exception-safe when the new construction
+    ///        can't throw, which is exactly what this constraint
+    ///        guarantees -- confirmed necessary by hitting a real
+    ///        compile error against the real type without it (this
+    ///        polyfill was, incorrectly, unconditionally permissive
+    ///        here), not assumed.
     /// @param args Forwarded to `T`'s constructor.
     /// @return A reference to the newly-constructed value.
     template <class... Args, class = std::enable_if_t<std::is_nothrow_constructible_v<T, Args...>>>
