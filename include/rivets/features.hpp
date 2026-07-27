@@ -76,6 +76,14 @@
 #    define BRIDGE_RIVETS_FEATURES_LIB_PRINT 0
 #endif
 
+/// @def BRIDGE_RIVETS_FEATURES_LIB_SPAN
+/// @brief `#if`-usable value of `__cpp_lib_span`, or `0` if undefined.
+#ifdef __cpp_lib_span
+#    define BRIDGE_RIVETS_FEATURES_LIB_SPAN __cpp_lib_span
+#else
+#    define BRIDGE_RIVETS_FEATURES_LIB_SPAN 0
+#endif
+
 namespace bridge::rivets::features {
 
 /// @brief Value of `__cpp_lib_optional`, or `0` if undefined.
@@ -89,5 +97,8 @@ inline constexpr long lib_format = BRIDGE_RIVETS_FEATURES_LIB_FORMAT;
 
 /// @brief Value of `__cpp_lib_print`, or `0` if undefined.
 inline constexpr long lib_print = BRIDGE_RIVETS_FEATURES_LIB_PRINT;
+
+/// @brief Value of `__cpp_lib_span`, or `0` if undefined.
+inline constexpr long lib_span = BRIDGE_RIVETS_FEATURES_LIB_SPAN;
 
 } // namespace bridge::rivets::features

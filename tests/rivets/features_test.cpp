@@ -92,3 +92,27 @@ TEST_CASE("BRIDGE_RIVETS_FEATURES_LIB_PRINT is #if-usable", "[rivets][features]"
     FAIL("BRIDGE_RIVETS_FEATURES_LIB_PRINT should be 0 or at least the C++23 baseline");
 #endif
 }
+
+TEST_CASE("bridge::rivets::features::lib_span matches __cpp_lib_span", "[rivets][features]") {
+#ifdef __cpp_lib_span
+    REQUIRE(bridge::rivets::features::lib_span == __cpp_lib_span);
+#else
+    // std::span doesn't exist at all before C++20 -- __cpp_lib_span is
+    // legitimately undefined under -std=c++17, confirmed by direct
+    // compiler probe before this Feature Test was written (both GCC
+    // 15.3 and Clang 20 report exactly 202002L from -std=c++20 onward,
+    // including under -std=c++23 -- this libstdc++ hasn't bumped it to
+    // the C++23 tuple-like-interface value 202311L yet).
+    REQUIRE(bridge::rivets::features::lib_span == 0);
+#endif
+}
+
+TEST_CASE("BRIDGE_RIVETS_FEATURES_LIB_SPAN is #if-usable", "[rivets][features]") {
+#if BRIDGE_RIVETS_FEATURES_LIB_SPAN == 0
+    SUCCEED(); // pre-C++20 toolchains legitimately report 0 here
+#elif BRIDGE_RIVETS_FEATURES_LIB_SPAN >= 202002L
+    SUCCEED();
+#else
+    FAIL("BRIDGE_RIVETS_FEATURES_LIB_SPAN should be 0 or at least the C++20 baseline");
+#endif
+}
