@@ -7,8 +7,12 @@ INPUT                    = @CMAKE_SOURCE_DIR@/include
 RECURSIVE                = YES
 FILE_PATTERNS            = *.hpp *.h
 
-USE_MDFILE_AS_MAINPAGE   = @CMAKE_SOURCE_DIR@/README.md
-INPUT                   += @CMAKE_SOURCE_DIR@/README.md
+# The mainpage and every conceptual-division page (docs/adr/0014-
+# documentation-site-architecture.md) live here as hand-written +
+# generated-block Markdown, not README.md -- no USE_MDFILE_AS_MAINPAGE
+# needed, since docs/pages/index.md declares \mainpage itself.
+INPUT                   += @CMAKE_SOURCE_DIR@/docs/pages
+FILE_PATTERNS            += *.md
 
 # EXTRACT_ALL=YES would suppress WARN_IF_UNDOCUMENTED entirely (Doxygen
 # treats "extract everything anyway" and "warn about undocumented entities"
@@ -42,6 +46,31 @@ EXPAND_AS_DEFINED        = BRIDGE_RIVETS_DEFINE_DETECTOR \
 GENERATE_HTML            = YES
 GENERATE_LATEX           = NO
 GENERATE_MAN             = NO
-GENERATE_XML             = NO
+# scripts/docs-pages.py (docs/adr/0014) reads this to pull each promoted
+# symbol's real @brief text into the generated per-facility tables --
+# the same text WARN_IF_UNDOCUMENTED already enforces exists, so those
+# tables can't drift from the real docs the way a hand-duplicated brief
+# in the registry could.
+GENERATE_XML             = YES
 
 QUIET                    = YES
+
+# Doxygen Awesome theme (third_party/doxygen-awesome-css, pinned at
+# v2.4.2 -- docs/adr/0014), for a cppreference-closer look: sidebar
+# navigation, dark mode, cleaner typography. HTML_COLORSTYLE=LIGHT
+# disables Doxygen's own native dark-mode toggle so the theme's own
+# toggle (wired via docs/doxygen-header.html) is the only one, not two
+# competing buttons.
+GENERATE_TREEVIEW        = YES
+DISABLE_INDEX            = NO
+FULL_SIDEBAR             = NO
+HTML_COLORSTYLE          = LIGHT
+HTML_HEADER              = @CMAKE_SOURCE_DIR@/docs/doxygen-header.html
+HTML_EXTRA_STYLESHEET    = @CMAKE_SOURCE_DIR@/third_party/doxygen-awesome-css/doxygen-awesome.css \
+                           @CMAKE_SOURCE_DIR@/third_party/doxygen-awesome-css/doxygen-awesome-sidebar-only.css \
+                           @CMAKE_SOURCE_DIR@/third_party/doxygen-awesome-css/doxygen-awesome-sidebar-only-darkmode-toggle.css
+HTML_EXTRA_FILES         = @CMAKE_SOURCE_DIR@/third_party/doxygen-awesome-css/doxygen-awesome-darkmode-toggle.js \
+                           @CMAKE_SOURCE_DIR@/third_party/doxygen-awesome-css/doxygen-awesome-fragment-copy-button.js \
+                           @CMAKE_SOURCE_DIR@/third_party/doxygen-awesome-css/doxygen-awesome-paragraph-link.js \
+                           @CMAKE_SOURCE_DIR@/third_party/doxygen-awesome-css/doxygen-awesome-interactive-toc.js \
+                           @CMAKE_SOURCE_DIR@/third_party/doxygen-awesome-css/doxygen-awesome-tabs.js
