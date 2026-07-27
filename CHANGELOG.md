@@ -7,6 +7,20 @@ Versions are CalVer: `YY.MM.MICRO` (see docs/adr/0005-calver-versioning.md).
 ## [Unreleased]
 
 ### Added
+- Truss's `format`/`print` polyfill begins: `format_error`,
+  `format_parse_context`, `format_context<OutIt>`, and the disabled-by-
+  default `formatter<T>` customization point, in a new
+  `include/truss/cpp17/format.hpp`. Includes a hand-written parser for
+  the full standard format-spec grammar minus locale (fill-and-align,
+  sign, `#`, `0`, width/precision including dynamic `{}`/`{N}`
+  references, and the trailing type character) -- cross-checked against
+  real `std::format`'s own compile-time diagnostics during development,
+  which caught a real parser bug (a leading `0` in the width position
+  must still enter width-parsing and get rejected there as "must be
+  non-zero", not be skipped over as if no width were present at all).
+  Built-in formatters and the top-level `format`/`format_to`/etc. entry
+  points land in follow-up commits. See
+  `docs/adr/0012-format-print-truss-owns-the-facility.md`.
 - New project-wide policy: any Truss-owned facility with a disclosed
   divergence from the real standard facility that could reasonably
   surprise a consumer gets a compiler-visible note, not just
