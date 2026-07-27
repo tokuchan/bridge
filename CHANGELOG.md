@@ -141,6 +141,17 @@ Versions are CalVer: `YY.MM.MICRO` (see docs/adr/0005-calver-versioning.md).
   themselves are hard-rejected until `-std=c++23` -- the two features
   cross their real thresholds at different standards, so they get
   independent Feature Tests rather than one shared gate.
+- Every facility page's hand-written Example is now flattened
+  (concatenated with its real bridge headers, per a new
+  `example_headers:` field in `docs/pages/registry.yaml`) and
+  compile-checked standalone under `-std=c++17` as part of
+  `./bridge docs` (both `generate` and CI's `check`), failing loudly
+  if an Example stops compiling or its assertions stop holding as the
+  real headers it depends on change. See
+  docs/adr/0016-godbolt-interactive-examples.md -- this is the part of
+  that ADR's investigation that shipped; a Compiler Explorer "Try it"
+  link on top of it did not (rejected: the generated link was too
+  large for Compiler Explorer's endpoint to accept).
 
 ### Changed
 - Every generated documentation page rewritten to a uniform
