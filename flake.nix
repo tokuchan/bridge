@@ -26,6 +26,13 @@
         catch2_3
         doxygen
         boost
+        # docs/pages/registry.yaml + scripts/docs-pages.py (docs/adr/0014):
+        # PyYAML is the one real third-party Python dependency the doc-site
+        # tooling needs, added via withPackages -- the same Nix-hermetic
+        # story as every other devShell package here, not a second,
+        # PyPI-facing package manager (uv was considered and rejected for
+        # exactly this reason).
+        (python3.withPackages (ps: [ ps.pyyaml ]))
         # run:packages — managed by 'run --add / --remove'; do not delete this line
       ];
 
