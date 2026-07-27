@@ -1,0 +1,62 @@
+name: Deploy documentation
+
+# docs/adr/0014-documentation-site-architecture.md: builds the site
+# with the same Nix devShell a contributor's own `./bridge docs` uses
+# (not the container-wrapping ./bridge script itself -- that layer's
+# host-isolation purpose is redundant on an already-ephemeral runner),
+# then deploys it to GitHub Pages. Deliberately docs-only: ./bridge
+# test/the compiler matrix aren't wired into CI here.
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Only one Pages deployment at a time; don't cancel one that's already
+# rolling out mid-deploy.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - name: Configure and build (pass 1 -- XML from whatever's committed)
+        run: |
+          nix develop --command cmake -S . -B build -DBRIDGE_BUILD_DOCS=ON
+          nix develop --command cmake --build build --target docs
+
+      - name: Check pages are in sync with the registry/Doxygen XML
+        run: nix develop --command python3 scripts/docs-pages.py check
+
+      - name: Regenerate pages and rebuild (pass 2 -- final HTML)
+        run: |
+          nix develop --command python3 scripts/docs-pages.py generate
+          nix develop --command cmake --build build --target docs
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/docs/html
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/deploy-pages@v4
+        id: deployment
