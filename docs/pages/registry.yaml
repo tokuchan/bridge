@@ -1,0 +1,77 @@
+# Facility registry (docs/adr/0014-documentation-site-architecture.md).
+#
+# Every header under include/**/*.hpp must be listed under exactly one
+# facility's `headers` here -- scripts/docs-pages.py fails the docs
+# build otherwise, the same severity Doxygen's own WARN_IF_UNDOCUMENTED
+# already gives an undocumented symbol.
+#
+# `page` is the docs/pages/<page> Markdown file Doxygen renders as a
+# `\page`. `cppreference` is the one cppreference.com URL used both for
+# every promoted symbol's own `@see` line and for the facility page's
+# generated table -- null when the facility has no real std:: mirror
+# (Rivets' own detection concepts, version metadata).
+#
+# scripts/docs-pages.py scaffolds docs/pages/<page> if it doesn't exist
+# yet, then regenerates the marked `headers`/`symbols` blocks inside it
+# from this file and Doxygen's XML output, every docs build.
+
+facilities:
+  - name: optional
+    page: optional.md
+    cppreference: https://en.cppreference.com/w/cpp/utility/optional
+    headers:
+      - include/truss/cpp17/optional.hpp
+      - include/deck/cpp17/optional.hpp
+
+  - name: expected
+    page: expected.md
+    cppreference: https://en.cppreference.com/w/cpp/utility/expected
+    headers:
+      - include/truss/cpp17/expected.hpp
+      - include/deck/cpp17/expected.hpp
+
+  - name: format-print
+    page: format-print.md
+    # print/println have their own separate cppreference page
+    # (https://en.cppreference.com/w/cpp/io/print) -- format's page is
+    # used here as the one registry-level URL (docs/adr/0014 discloses
+    # this simplification), and format-print.md's own prose links both.
+    cppreference: https://en.cppreference.com/w/cpp/utility/format
+    headers:
+      - include/truss/cpp17/format.hpp
+      - include/truss/cpp17/print.hpp
+      - include/deck/cpp17/format.hpp
+      - include/deck/cpp17/print.hpp
+
+  - name: detectors
+    page: detectors.md
+    cppreference: null
+    headers:
+      - include/rivets/boost.hpp
+      - include/rivets/clang.hpp
+      - include/rivets/gcc.hpp
+      - include/rivets/libcxx.hpp
+      - include/rivets/libstdcxx.hpp
+      - include/rivets/msvc.hpp
+      - include/rivets/msvc_stl.hpp
+      - include/rivets/standard.hpp
+      - include/rivets/detail/detector.hpp
+
+  - name: feature-tests
+    page: feature-tests.md
+    cppreference: https://en.cppreference.com/w/cpp/feature_test
+    headers:
+      - include/rivets/features.hpp
+
+  - name: diagnostics
+    page: diagnostics.md
+    cppreference: null
+    headers:
+      - include/rivets/diagnostics.hpp
+
+  - name: version
+    page: version.md
+    cppreference: null
+    headers:
+      - include/truss/cpp17/version.hpp
+      - include/deck/cpp17/version.hpp
