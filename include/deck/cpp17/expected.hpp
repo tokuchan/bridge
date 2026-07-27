@@ -51,19 +51,24 @@ namespace bridge::detail::deck::cpp17::expected {
 
 /// @brief Passthrough: this ecosystem's `std::expected` is available,
 ///        so bridge adds nothing.
+/// @see https://en.cppreference.com/w/cpp/utility/expected
 template <class T, class E>
 using expected = std::expected<T, E>;
 
 /// @brief Passthrough companion to @ref expected.
+/// @see https://en.cppreference.com/w/cpp/utility/expected
 template <class E>
 using unexpected = std::unexpected<E>;
 
 /// @brief Passthrough companion to @ref expected.
+/// @see https://en.cppreference.com/w/cpp/utility/expected
 using unexpect_t = std::unexpect_t;
 /// @brief Passthrough companion to @ref expected.
+/// @see https://en.cppreference.com/w/cpp/utility/expected
 inline constexpr unexpect_t unexpect = std::unexpect;
 
 /// @brief Passthrough companion to @ref expected.
+/// @see https://en.cppreference.com/w/cpp/utility/expected
 template <class E>
 using bad_expected_access = std::bad_expected_access<E>;
 
@@ -80,19 +85,24 @@ BRIDGE_RIVETS_DIVERGENCE_NOTE(
 
 /// @brief Truss's polyfill, for ecosystems without native
 ///        `std::expected` yet.
+/// @see https://en.cppreference.com/w/cpp/utility/expected
 template <class T, class E>
 using expected = bridge::truss::expected<T, E>;
 
 /// @brief Polyfill companion to @ref expected.
+/// @see https://en.cppreference.com/w/cpp/utility/expected
 template <class E>
 using unexpected = bridge::truss::unexpected<E>;
 
 /// @brief Polyfill companion to @ref expected.
+/// @see https://en.cppreference.com/w/cpp/utility/expected
 using unexpect_t = bridge::truss::unexpect_t;
 /// @brief Polyfill companion to @ref expected.
+/// @see https://en.cppreference.com/w/cpp/utility/expected
 inline constexpr unexpect_t unexpect = bridge::truss::unexpect;
 
 /// @brief Polyfill companion to @ref expected.
+/// @see https://en.cppreference.com/w/cpp/utility/expected
 template <class E>
 using bad_expected_access = bridge::truss::bad_expected_access<E>;
 

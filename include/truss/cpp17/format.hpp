@@ -42,6 +42,7 @@ namespace bridge::detail::truss::cpp17::format {
 /// @brief Thrown when a format string is malformed, references an
 ///        out-of-range or type-mismatched argument, or otherwise
 ///        can't be honored. Matches `std::format_error`.
+/// @see https://en.cppreference.com/w/cpp/utility/format
 class format_error : public std::runtime_error {
 public:
     /// @brief Constructs from a `std::string` message.
@@ -64,6 +65,7 @@ public:
 ///        the first place (no `consteval` pre-C++20 to do so with —
 ///        see docs/adr/0012's disclosed compile-time-validation gap),
 ///        so there's nothing to gain from it.
+/// @see https://en.cppreference.com/w/cpp/utility/format
 class format_parse_context {
 public:
     /// @brief The character type. Always `char` — this polyfill is
@@ -415,6 +417,7 @@ inline std::size_t resolve_width_or_precision(const width_or_precision& wp, cons
 ///         generic over any output iterator, matching the real
 ///         signature (not a curated fixed set of sinks) — this is
 ///         template parameter that makes that possible.
+/// @see https://en.cppreference.com/w/cpp/utility/format
 template <class OutIt>
 class format_context {
 public:
@@ -460,6 +463,7 @@ private:
 ///        reasonably clear "deleted function" error rather than a
 ///        wall of SFINAE errors, via the deleted default constructor.
 /// @tparam T The type to format.
+/// @see https://en.cppreference.com/w/cpp/utility/format
 template <class T, class = void>
 struct formatter {
     /// @brief Deleted: `T` has no `formatter` specialization.
@@ -1016,6 +1020,7 @@ private:
 /// @tparam Args The argument types this format string is meant to be
 ///         used with (unused by this type itself; carried only so
 ///         `format`/`format_to`/etc.'s signatures match the real ones).
+/// @see https://en.cppreference.com/w/cpp/utility/format
 template <class... Args>
 class format_string {
 public:
@@ -1217,6 +1222,7 @@ private:
 ///        number of characters that *would* have been written for an
 ///        unlimited output size, matching real `std::format_to_n_result`.
 /// @tparam OutIt The output iterator type.
+/// @see https://en.cppreference.com/w/cpp/utility/format
 template <class OutIt>
 struct format_to_n_result {
     /// @brief One past the last element actually written.
@@ -1237,6 +1243,7 @@ struct format_to_n_result {
 /// @return An iterator one past the last character written.
 /// @throws format_error if `fmt` is malformed or references an
 ///         out-of-range or type-mismatched argument.
+/// @see https://en.cppreference.com/w/cpp/utility/format
 template <class OutIt, class... Args>
 OutIt format_to(OutIt out, format_string<std::decay_t<Args>...> fmt, Args&&... args) {
     auto args_tuple = std::forward_as_tuple(std::forward<Args>(args)...);
@@ -1258,6 +1265,7 @@ OutIt format_to(OutIt out, format_string<std::decay_t<Args>...> fmt, Args&&... a
 /// @return The formatted string.
 /// @throws format_error if `fmt` is malformed or references an
 ///         out-of-range or type-mismatched argument.
+/// @see https://en.cppreference.com/w/cpp/utility/format
 template <class... Args>
 std::string format(format_string<std::decay_t<Args>...> fmt, Args&&... args) {
     std::string result;
@@ -1277,6 +1285,7 @@ std::string format(format_string<std::decay_t<Args>...> fmt, Args&&... args) {
 ///         and the total (untruncated) size, per `format_to_n_result`.
 /// @throws format_error if `fmt` is malformed or references an
 ///         out-of-range or type-mismatched argument.
+/// @see https://en.cppreference.com/w/cpp/utility/format
 template <class OutIt, class... Args>
 format_to_n_result<OutIt> format_to_n(OutIt out, std::ptrdiff_t n, format_string<std::decay_t<Args>...> fmt,
                                        Args&&... args) {
@@ -1293,6 +1302,7 @@ format_to_n_result<OutIt> format_to_n(OutIt out, std::ptrdiff_t n, format_string
 /// @return The length, in characters.
 /// @throws format_error if `fmt` is malformed or references an
 ///         out-of-range or type-mismatched argument.
+/// @see https://en.cppreference.com/w/cpp/utility/format
 template <class... Args>
 std::size_t formatted_size(format_string<std::decay_t<Args>...> fmt, Args&&... args) {
     engine::counting_output_iterator counter;
@@ -1309,6 +1319,7 @@ std::size_t formatted_size(format_string<std::decay_t<Args>...> fmt, Args&&... a
 ///        always targets `std::string`) -- a direct, disclosed
 ///        consequence of docs/adr/0012's scope decision, not a
 ///        separate divergence in its own right.
+/// @see https://en.cppreference.com/w/cpp/utility/format
 class format_args {
 public:
     /// @brief Dispatches to argument `index`'s `formatter<T>::parse`/
@@ -1352,6 +1363,7 @@ private:
 /// @tparam Args The argument types.
 /// @param args The arguments.
 /// @return The type-erased argument pack.
+/// @see https://en.cppreference.com/w/cpp/utility/format
 template <class... Args>
 format_args make_format_args(Args&... args) {
     format_args fa;
@@ -1378,6 +1390,7 @@ format_args make_format_args(Args&... args) {
 /// @return The formatted string.
 /// @throws format_error if `fmt` is malformed or references an
 ///         out-of-range or type-mismatched argument.
+/// @see https://en.cppreference.com/w/cpp/utility/format
 inline std::string vformat(std::string_view fmt, format_args args) {
     std::string result;
     dynamic_arg_source src([&args](std::size_t index) -> long long { return args.dynamic_arg(index); });

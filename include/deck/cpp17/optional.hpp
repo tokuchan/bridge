@@ -31,6 +31,7 @@ using optional = std::optional<T>;
 ///        `std::optional` doesn't have them yet. Built on Truss's free
 ///        functions (include/truss/cpp17/optional.hpp); every other
 ///        member comes from `std::optional<T>` via public inheritance.
+/// @see https://en.cppreference.com/w/cpp/utility/optional
 template <class T>
 class optional : public std::optional<T> {
 public:

@@ -50,6 +50,7 @@ inline constexpr bool is_optional_v = is_optional<T>::value;
 /// @param opt The optional to inspect.
 /// @param f A callable returning a `std::optional` specialization.
 /// @return `f`'s result, or an empty instance of its optional type.
+/// @see https://en.cppreference.com/w/cpp/utility/optional
 template <class T, class F>
 constexpr auto and_then(std::optional<T>& opt, F&& f) {
     using U = std::decay_t<std::invoke_result_t<F, T&>>;
@@ -66,6 +67,7 @@ constexpr auto and_then(std::optional<T>& opt, F&& f) {
 /// @param opt The optional to inspect.
 /// @param f A callable returning a `std::optional` specialization.
 /// @return `f`'s result, or an empty instance of its optional type.
+/// @see https://en.cppreference.com/w/cpp/utility/optional
 template <class T, class F>
 constexpr auto and_then(const std::optional<T>& opt, F&& f) {
     using U = std::decay_t<std::invoke_result_t<F, const T&>>;
@@ -82,6 +84,7 @@ constexpr auto and_then(const std::optional<T>& opt, F&& f) {
 /// @param opt The optional to inspect.
 /// @param f A callable returning a `std::optional` specialization.
 /// @return `f`'s result, or an empty instance of its optional type.
+/// @see https://en.cppreference.com/w/cpp/utility/optional
 template <class T, class F>
 constexpr auto and_then(std::optional<T>&& opt, F&& f) {
     using U = std::decay_t<std::invoke_result_t<F, T&&>>;
@@ -98,6 +101,7 @@ constexpr auto and_then(std::optional<T>&& opt, F&& f) {
 /// @param opt The optional to inspect.
 /// @param f A callable returning a `std::optional` specialization.
 /// @return `f`'s result, or an empty instance of its optional type.
+/// @see https://en.cppreference.com/w/cpp/utility/optional
 template <class T, class F>
 constexpr auto and_then(const std::optional<T>&& opt, F&& f) {
     using U = std::decay_t<std::invoke_result_t<F, const T&&>>;
@@ -114,6 +118,7 @@ constexpr auto and_then(const std::optional<T>&& opt, F&& f) {
 /// @param f A callable, invoked with no arguments, returning something
 ///           convertible to `std::optional<T>`.
 /// @return A copy of `opt`, or `f`'s result.
+/// @see https://en.cppreference.com/w/cpp/utility/optional
 template <class T, class F>
 constexpr std::optional<T> or_else(const std::optional<T>& opt, F&& f) {
     static_assert(std::is_convertible_v<std::invoke_result_t<F>, std::optional<T>>,
@@ -130,6 +135,7 @@ constexpr std::optional<T> or_else(const std::optional<T>& opt, F&& f) {
 /// @param f A callable, invoked with no arguments, returning something
 ///           convertible to `std::optional<T>`.
 /// @return `opt`, moved, or `f`'s result.
+/// @see https://en.cppreference.com/w/cpp/utility/optional
 template <class T, class F>
 constexpr std::optional<T> or_else(std::optional<T>&& opt, F&& f) {
     static_assert(std::is_convertible_v<std::invoke_result_t<F>, std::optional<T>>,
@@ -146,6 +152,7 @@ constexpr std::optional<T> or_else(std::optional<T>&& opt, F&& f) {
 /// @param opt The optional to inspect.
 /// @param f A callable returning a non-`void` value.
 /// @return `f`'s result wrapped in `std::optional`, or an empty one.
+/// @see https://en.cppreference.com/w/cpp/utility/optional
 template <class T, class F>
 constexpr auto transform(std::optional<T>& opt, F&& f) {
     using U = std::decay_t<std::invoke_result_t<F, T&>>;
@@ -162,6 +169,7 @@ constexpr auto transform(std::optional<T>& opt, F&& f) {
 /// @param opt The optional to inspect.
 /// @param f A callable returning a non-`void` value.
 /// @return `f`'s result wrapped in `std::optional`, or an empty one.
+/// @see https://en.cppreference.com/w/cpp/utility/optional
 template <class T, class F>
 constexpr auto transform(const std::optional<T>& opt, F&& f) {
     using U = std::decay_t<std::invoke_result_t<F, const T&>>;
@@ -178,6 +186,7 @@ constexpr auto transform(const std::optional<T>& opt, F&& f) {
 /// @param opt The optional to inspect.
 /// @param f A callable returning a non-`void` value.
 /// @return `f`'s result wrapped in `std::optional`, or an empty one.
+/// @see https://en.cppreference.com/w/cpp/utility/optional
 template <class T, class F>
 constexpr auto transform(std::optional<T>&& opt, F&& f) {
     using U = std::decay_t<std::invoke_result_t<F, T&&>>;
@@ -194,6 +203,7 @@ constexpr auto transform(std::optional<T>&& opt, F&& f) {
 /// @param opt The optional to inspect.
 /// @param f A callable returning a non-`void` value.
 /// @return `f`'s result wrapped in `std::optional`, or an empty one.
+/// @see https://en.cppreference.com/w/cpp/utility/optional
 template <class T, class F>
 constexpr auto transform(const std::optional<T>&& opt, F&& f) {
     using U = std::decay_t<std::invoke_result_t<F, const T&&>>;

@@ -63,9 +63,11 @@ namespace bridge::detail::deck::cpp17::format {
 
 /// @brief Passthrough: this ecosystem's `std::format_error` is
 ///        available, so bridge adds nothing.
+/// @see https://en.cppreference.com/w/cpp/utility/format
 using format_error = std::format_error;
 
 /// @brief Passthrough companion to `format`.
+/// @see https://en.cppreference.com/w/cpp/utility/format
 using format_parse_context = std::format_parse_context;
 
 /// @brief Passthrough companion to `format`. Named for
@@ -73,24 +75,29 @@ using format_parse_context = std::format_parse_context;
 ///        override) -- ordinary code names `FormatContext` via a
 ///        template parameter instead, matching how real `formatter`
 ///        specializations are written.
+/// @see https://en.cppreference.com/w/cpp/utility/format
 template <class OutIt>
 using format_context = std::basic_format_context<OutIt, char>;
 
 /// @brief Passthrough companion to `format`. An alias template --
 ///        cannot be specialized directly; see this file's top-of-file
 ///        doc comment.
+/// @see https://en.cppreference.com/w/cpp/utility/format
 template <class T>
 using formatter = std::formatter<T>;
 
 /// @brief Passthrough companion to `format`.
+/// @see https://en.cppreference.com/w/cpp/utility/format
 template <class... Args>
 using format_string = std::format_string<Args...>;
 
 /// @brief Passthrough companion to `format`.
+/// @see https://en.cppreference.com/w/cpp/utility/format
 template <class OutIt>
 using format_to_n_result = std::format_to_n_result<OutIt>;
 
 /// @brief Passthrough companion to `format`.
+/// @see https://en.cppreference.com/w/cpp/utility/format
 using format_args = std::format_args;
 
 using std::format;
@@ -116,30 +123,37 @@ BRIDGE_RIVETS_DIVERGENCE_NOTE(
 
 /// @brief Truss's polyfill, for ecosystems without native
 ///        `std::format` yet.
+/// @see https://en.cppreference.com/w/cpp/utility/format
 using format_error = bridge::truss::format_error;
 
 /// @brief Polyfill companion to `format`.
+/// @see https://en.cppreference.com/w/cpp/utility/format
 using format_parse_context = bridge::truss::format_parse_context;
 
 /// @brief Polyfill companion to `format`.
+/// @see https://en.cppreference.com/w/cpp/utility/format
 template <class OutIt>
 using format_context = bridge::truss::format_context<OutIt>;
 
 /// @brief Polyfill companion to `format`. An alias template --
 ///        cannot be specialized directly; see this file's top-of-file
 ///        doc comment.
+/// @see https://en.cppreference.com/w/cpp/utility/format
 template <class T>
 using formatter = bridge::truss::formatter<T>;
 
 /// @brief Polyfill companion to `format`.
+/// @see https://en.cppreference.com/w/cpp/utility/format
 template <class... Args>
 using format_string = bridge::truss::format_string<Args...>;
 
 /// @brief Polyfill companion to `format`.
+/// @see https://en.cppreference.com/w/cpp/utility/format
 template <class OutIt>
 using format_to_n_result = bridge::truss::format_to_n_result<OutIt>;
 
 /// @brief Polyfill companion to `format`.
+/// @see https://en.cppreference.com/w/cpp/utility/format
 using format_args = bridge::truss::format_args;
 
 using bridge::truss::format;

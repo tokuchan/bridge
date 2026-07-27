@@ -36,6 +36,7 @@ namespace bridge::detail::truss::cpp17::print {
 /// @param args The arguments to format.
 /// @throws bridge::truss::format_error if `fmt` is malformed or
 ///         references an out-of-range or type-mismatched argument.
+/// @see https://en.cppreference.com/w/cpp/io/print
 template <class... Args>
 void print(std::FILE* stream, bridge::truss::format_string<std::decay_t<Args>...> fmt, Args&&... args) {
     std::string s = bridge::truss::format(fmt, std::forward<Args>(args)...);
@@ -48,6 +49,7 @@ void print(std::FILE* stream, bridge::truss::format_string<std::decay_t<Args>...
 /// @param args The arguments to format.
 /// @throws bridge::truss::format_error if `fmt` is malformed or
 ///         references an out-of-range or type-mismatched argument.
+/// @see https://en.cppreference.com/w/cpp/io/print
 template <class... Args>
 void print(bridge::truss::format_string<std::decay_t<Args>...> fmt, Args&&... args) {
     print(stdout, fmt, std::forward<Args>(args)...);
@@ -61,6 +63,7 @@ void print(bridge::truss::format_string<std::decay_t<Args>...> fmt, Args&&... ar
 /// @param args The arguments to format.
 /// @throws bridge::truss::format_error if `fmt` is malformed or
 ///         references an out-of-range or type-mismatched argument.
+/// @see https://en.cppreference.com/w/cpp/io/print
 template <class... Args>
 void println(std::FILE* stream, bridge::truss::format_string<std::decay_t<Args>...> fmt, Args&&... args) {
     print(stream, fmt, std::forward<Args>(args)...);
@@ -74,6 +77,7 @@ void println(std::FILE* stream, bridge::truss::format_string<std::decay_t<Args>.
 /// @param args The arguments to format.
 /// @throws bridge::truss::format_error if `fmt` is malformed or
 ///         references an out-of-range or type-mismatched argument.
+/// @see https://en.cppreference.com/w/cpp/io/print
 template <class... Args>
 void println(bridge::truss::format_string<std::decay_t<Args>...> fmt, Args&&... args) {
     println(stdout, fmt, std::forward<Args>(args)...);
@@ -86,6 +90,7 @@ void println(bridge::truss::format_string<std::decay_t<Args>...> fmt, Args&&... 
 /// @param args The arguments to format.
 /// @throws bridge::truss::format_error if `fmt` is malformed or
 ///         references an out-of-range or type-mismatched argument.
+/// @see https://en.cppreference.com/w/cpp/io/print
 template <class... Args>
 void print(std::ostream& os, bridge::truss::format_string<std::decay_t<Args>...> fmt, Args&&... args) {
     std::string s = bridge::truss::format(fmt, std::forward<Args>(args)...);
@@ -99,6 +104,7 @@ void print(std::ostream& os, bridge::truss::format_string<std::decay_t<Args>...>
 /// @param args The arguments to format.
 /// @throws bridge::truss::format_error if `fmt` is malformed or
 ///         references an out-of-range or type-mismatched argument.
+/// @see https://en.cppreference.com/w/cpp/io/print
 template <class... Args>
 void println(std::ostream& os, bridge::truss::format_string<std::decay_t<Args>...> fmt, Args&&... args) {
     print(os, fmt, std::forward<Args>(args)...);

@@ -52,6 +52,7 @@ inline constexpr bool is_unexpected_v = is_unexpected<T>::value;
 /// @brief Tag type selecting `expected`'s error-constructing
 ///        constructor overloads, mirroring `std::in_place_t`. Matches
 ///        `std::unexpect_t`.
+/// @see https://en.cppreference.com/w/cpp/utility/expected
 struct unexpect_t {
     /// @brief Explicit so `unexpect_t{}` can't happen via copy-list-
     ///        initialization from `{}` in a context expecting some
@@ -61,6 +62,7 @@ struct unexpect_t {
 /// @brief The canonical `unexpect_t` instance, passed to select
 ///        `expected`'s in-place-error constructors. Matches
 ///        `std::unexpect`.
+/// @see https://en.cppreference.com/w/cpp/utility/expected
 inline constexpr unexpect_t unexpect{};
 
 /// @brief Wraps an error value of type `E`, matching `std::unexpected`.
@@ -70,6 +72,7 @@ inline constexpr unexpect_t unexpect{};
 /// @tparam E The error type. Must be a non-array, non-cv-qualified
 ///         object type, and must not itself be a specialization of
 ///         `unexpected`.
+/// @see https://en.cppreference.com/w/cpp/utility/expected
 template <class E>
 class unexpected {
     static_assert(std::is_object_v<E>, "unexpected<E>: E must be an object type");
@@ -226,6 +229,7 @@ using bad_expected_access_void_base = bad_expected_access<void>;
 ///        @ref bad_expected_access "bad_expected_access<void>" (via
 ///        `bad_expected_access_void_base`), so it can be caught without
 ///        knowing `E`.
+/// @see https://en.cppreference.com/w/cpp/utility/expected
 template <class E>
 class bad_expected_access : public bad_expected_access_void_base {
 public:
@@ -729,6 +733,7 @@ inline constexpr bool is_expected_v = is_expected<T>::value;
 ///         `unexpected`.
 /// @tparam E The error type, wrapped internally in `unexpected<E>`
 ///         wherever an error is stored or reported.
+/// @see https://en.cppreference.com/w/cpp/utility/expected
 template <class T, class E>
 class expected : private layers::move_assign_layer<T, E> {
     static_assert(!std::is_reference_v<T>, "expected<T,E>: T must not be a reference type");
