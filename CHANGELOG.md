@@ -7,6 +7,21 @@ Versions are CalVer: `YY.MM.MICRO` (see docs/adr/0005-calver-versioning.md).
 ## [Unreleased]
 
 ### Added
+- Deck's `format` alias-selection, in a new `include/deck/cpp17/format.hpp`:
+  `bridge::format`/`format_to`/`format_to_n`/`formatted_size`/`vformat`
+  and their companion types (`format_error`, `format_parse_context`,
+  `format_context`, `formatter`, `format_string`, `format_to_n_result`,
+  `format_args`) resolve to real `std::format`/etc. once
+  `BRIDGE_RIVETS_FEATURES_LIB_FORMAT` confirms native support, or to
+  Truss's polyfill otherwise -- same passthrough-or-polyfill shape as
+  `deck/cpp17/expected.hpp`. `formatter<T>` is a special case: it's an
+  alias template on both branches (C++ can't specialize an alias
+  template), so extending formatting for a user type means
+  specializing `bridge::truss::formatter<T>` or `std::formatter<T>`
+  directly, not `bridge::formatter<T>` itself -- disclosed via a new
+  `BRIDGE_RIVETS_DIVERGENCE_NOTE` on the polyfill branch and a new
+  `docs/adr/0012` subsection, found during implementation rather than
+  anticipated during design.
 - Truss's `print`/`println`, in a new `include/truss/cpp17/print.hpp`:
   both `FILE*`-targeting and `ostream`-targeting overload families
   (plus the implicit-stdout no-stream forms), built on this same

@@ -62,6 +62,45 @@ exception to an architectural invariant applied consistently
 everywhere else in this codebase. **Confirmed final**: `print` always
 uses Truss's own `format`, unconditionally.
 
+### `formatter<T>` is not transparently unifiable across the passthrough boundary
+
+Every other symbol Deck selects between (`format`, `format_to`,
+`format_context`, `format_parse_context`, `format_string`, ...) is
+either a function or a plain type — an ordinary `using` alias to
+whichever path is active makes it behave identically either way,
+exactly like `expected`'s companion types. `formatter<T>` is
+different in kind: it's a template users *specialize* to extend
+formatting for their own types, not just name. C++ doesn't allow
+specializing an alias template ([temp.alias]), so `bridge::formatter<T>`
+can only ever be a `using`-alias to whichever engine's `formatter` is
+currently selected — never a real, independently specializable
+template of its own. This was found during implementation (not
+anticipated during the grill session that scoped this ADR), and
+weighed against the alternative of promoting Truss's `formatter<T>`
+unconditionally regardless of path, which was rejected: that would
+have made `bridge::formatter`/`bridge::format` a mismatched pair under
+passthrough — `bridge::format` becomes `std::format` (looking up
+`std::formatter<T>`), while a user's specialization living on
+`bridge::formatter<T>` (unconditionally Truss's) would silently stop
+being found, exactly the "compiles on C++17, breaks on C++23" failure
+mode [ADR-0008](0008-best-effort-head-standard.md) and
+[ADR-0011](0011-warn-on-surprising-facility-divergences.md) both exist
+to prevent.
+
+The consequence: a user extending formatting for their own type must
+specialize the real underlying template directly —
+`bridge::truss::formatter<T>` for the polyfill path, `std::formatter<T>`
+for the passthrough path — not `bridge::formatter<T>`, which can be
+*named* (e.g. for a non-generic `formatter<T>::format` override) but
+never specialized. A type meant to stay formattable across a toolchain
+upgrade that crosses the passthrough boundary genuinely needs *both*
+specializations; this is an inherent limitation of what alias
+templates can do in C++, not a gap in this project's design. Disclosed
+per ADR-0011 via a `BRIDGE_RIVETS_DIVERGENCE_NOTE` on
+`deck/cpp17/format.hpp`'s polyfill branch, since the surprise is
+specifically "my `bridge::truss::formatter<T>` specialization stopped
+being picked up after passthrough activated."
+
 ### Scope
 
 Full C++23 `format`/`print` is one of the largest single features in
