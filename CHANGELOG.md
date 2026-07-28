@@ -7,6 +7,12 @@ Versions are CalVer: `YY.MM.MICRO` (see docs/adr/0005-calver-versioning.md).
 ## [Unreleased]
 
 ### Added
+- docs/pages/ste-glossary.md: the technical-terms glossary ADR-0018
+  established -- general programming words (`class`, `function`,
+  `template`, `invoke`, ...) and bridge-specific words (`polyfill`,
+  `passthrough`, `ecosystem`, `monadic method`) STE's own dictionary
+  doesn't cover, each pinned to one meaning. Linked from
+  docs/pages/index.md.
 - docs/adr/0018-ste100-writing-standard.md: bridge's manual (facility
   pages plus source `@brief`/`@details` comments) now follows
   ASD-STE100 (Simplified Technical English) -- full vocabulary

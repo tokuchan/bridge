@@ -34,6 +34,7 @@ not necessarily one page per header:
 ## Everything else
 
 - \subpage page_version
+- \subpage page_ste_glossary
 
 ## Full facility index
 

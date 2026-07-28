@@ -1,0 +1,90 @@
+\page page_ste_glossary STE Glossary
+
+This page lists the technical names that ASD-STE100 lets a manual add
+for its own equipment or domain. See
+[ADR-0018](https://github.com/tokuchan/bridge/blob/master/docs/adr/0018-ste100-writing-standard.md)
+for the full decision. Each entry has one approved meaning. Facility
+pages and source comments use these words only with the meaning shown
+here.
+
+**A note on precision.** This page applies ASD-STE100's rules and
+common vocabulary from public knowledge of the standard, not a copy of
+the licensed document itself. Treat the word-level detail here as a
+careful best effort, not a guarantee. Check a real copy of ASD-STE100
+for anything that must be exactly right.
+
+This page does not repeat terms that CONTEXT.md already defines
+(`Truss`, `Deck`, `Rivets`, `Entity`, `Detector`, `Named Detector`,
+`Feature Test`, and the namespace terms). Those terms keep their
+CONTEXT.md meaning here too.
+
+## General programming words
+
+### class
+A type that groups data and the actions on that data.
+
+### function
+A named piece of code that does one action. You can give it input
+data. It can give back a result.
+
+### method
+A function that belongs to a class.
+
+### template
+A pattern for a class or a function. You give the pattern a type. The
+compiler makes the real class or function from the pattern and the
+type.
+
+### parameter
+A named input that a function or a template accepts.
+
+### argument
+A value that you give to a function when you call it. The value fills
+a parameter.
+
+### callable
+A function, or an object that you can call like a function.
+
+### invoke
+To call a function or a callable.
+
+### compile
+To turn source code into a program that a computer can run.
+
+### header
+A file that contains C++ code. You can include a header in another
+file.
+
+### namespace
+A named group of related code.
+
+### inherit
+To build a class from another class. The new class gets all the
+actions and the data of the class that it inherits from.
+
+### instance
+One specific object that a class or a template makes.
+
+### chain
+To call one method, then call another method on the result, in one
+statement.
+
+## Bridge-specific words
+
+### polyfill
+Code that gives you a function from a newer C++ standard. You can use
+this code on an older standard that does not have the function.
+
+### passthrough
+Deck's choice to use the real C++ standard library function directly.
+Deck makes this choice when the current compiler and library already
+supply the function.
+
+### ecosystem
+One specific combination of a compiler and a standard library.
+Different ecosystems can supply different C++ functions.
+
+### monadic method
+A method on `optional` (or a similar type) that lets you chain
+operations. Each method checks if the type holds a value. The method
+does the operation only when a value is there.
