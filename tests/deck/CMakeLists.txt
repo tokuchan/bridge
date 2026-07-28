@@ -1,6 +1,6 @@
 add_executable(bridge_deck_tests cpp17/version_test.cpp cpp17/optional_test.cpp cpp17/expected_test.cpp
                                   cpp17/format_test.cpp cpp17/print_test.cpp cpp17/format_differential_test.cpp
-                                  cpp17/span_test.cpp)
+                                  cpp17/span_test.cpp cpp17/jthread_test.cpp)
 target_link_libraries(bridge_deck_tests PRIVATE bridge::deck Catch2::Catch2WithMain)
 catch_discover_tests(bridge_deck_tests)
 
@@ -56,3 +56,14 @@ add_executable(bridge_deck_span_cpp20_tests cpp17/span_test.cpp cpp17/span_diffe
 target_link_libraries(bridge_deck_span_cpp20_tests PRIVATE bridge::deck Catch2::Catch2WithMain)
 target_compile_features(bridge_deck_span_cpp20_tests PRIVATE cxx_std_20)
 catch_discover_tests(bridge_deck_span_cpp20_tests)
+
+# Same reasoning as bridge_deck_span_cpp20_tests, for jthread/stop_token's
+# own passthrough path -- crosses its real threshold at C++20, gated on
+# BRIDGE_DECK_STOP_TOKEN_PASSTHROUGH (docs/adr/0017's Detector-backed
+# override), not a bare Feature Test. Includes the differential test
+# comparing bridge::truss::jthread/stop_token against real
+# std::jthread/std::stop_token directly.
+add_executable(bridge_deck_jthread_cpp20_tests cpp17/jthread_test.cpp cpp17/jthread_differential_test.cpp)
+target_link_libraries(bridge_deck_jthread_cpp20_tests PRIVATE bridge::deck Catch2::Catch2WithMain)
+target_compile_features(bridge_deck_jthread_cpp20_tests PRIVATE cxx_std_20)
+catch_discover_tests(bridge_deck_jthread_cpp20_tests)

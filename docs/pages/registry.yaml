@@ -108,9 +108,8 @@ facilities:
     headers:
       - include/truss/cpp17/stop_token.hpp
       - include/truss/cpp17/jthread.hpp
-      # include/deck/cpp17/stop_token.hpp and include/deck/cpp17/jthread.hpp
-      # land in a follow-up commit
-      # (docs/adr/0017-jthread-stop-token-truss-owns-the-class.md).
+      - include/deck/cpp17/stop_token.hpp
+      - include/deck/cpp17/jthread.hpp
 
   - name: detectors
     page: detectors.md

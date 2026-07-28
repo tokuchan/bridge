@@ -7,6 +7,20 @@ Versions are CalVer: `YY.MM.MICRO` (see docs/adr/0005-calver-versioning.md).
 ## [Unreleased]
 
 ### Added
+- Deck's `stop_token`/`stop_source`/`jthread` alias-selection, in new
+  `include/deck/cpp17/stop_token.hpp`/`jthread.hpp`: passthrough to the
+  real `std::` types via the Detector-backed Feature Test override
+  ADR-0017 designed (`BRIDGE_RIVETS_FEATURES_LIB_JTHREAD` always
+  required; `BRIDGE_RIVETS_FEATURES_LIB_STOP_TOKEN`'s absence is
+  overridden specifically when libstdc++ is confirmed active), or
+  Truss's polyfill otherwise. `jthread` and `stop_token` always select
+  the same path together (one shared macro condition), since a
+  callable expecting `bridge::stop_token` would be a genuine type
+  mismatch against real `std::jthread` if the two ever disagreed.
+  Confirmed via a differential test comparing `bridge::truss::jthread`/
+  `stop_token` against the real types directly in the same C++20
+  translation unit, plus `static_assert`s confirming passthrough
+  actually selects the real types (not just compiles).
 - Truss's `jthread` polyfill, in a new
   `include/truss/cpp17/jthread.hpp`: built directly on `std::thread`
   (a real C++11 facility) plus this same library's `stop_token.hpp` --
@@ -237,6 +251,20 @@ Versions are CalVer: `YY.MM.MICRO` (see docs/adr/0005-calver-versioning.md).
 See docs/adr/0014's amendment for the full rationale behind each.
 
 ### Fixed
+- `Doxyfile.in`: a header `#include`ing another header that itself
+  invokes `BRIDGE_RIVETS_DEFINE_DETECTOR` (e.g. the new
+  `deck/cpp17/stop_token.hpp` including `rivets/libstdcxx.hpp`)
+  silently corrupted Doxygen's macro expansion for *unrelated* Named
+  Detectors elsewhere in the codebase (`rivets/clang.hpp`'s `ge_18`
+  vanished from the generated docs entirely, with no warning) -- a
+  genuine Doxygen limitation in how `EXPAND_AS_DEFINED` tracks a macro
+  invocation reached more than one way, confirmed by bisecting down to
+  a two-line reproduction before working around it, not assumed from
+  the symptom alone. Fixed via a new `PREDEFINED = BRIDGE_DOXYGEN`
+  (Doxygen only) plus a `#ifndef BRIDGE_DOXYGEN` guard on the specific
+  indirect `#include` that triggers it -- Doxygen already documents
+  that header directly via its own `INPUT` scan, so hiding the second,
+  indirect reference from its parser loses no real coverage.
 - `scripts/docs-pages.py`'s Markdown reconstruction (`render_inline()`)
   now handles Doxygen's typographic entity substitutions
   (`<ndash/>`/`<mdash/>`/`<hellip/>` for `--`/`---`/`...` written in the

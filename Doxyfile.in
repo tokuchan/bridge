@@ -52,6 +52,26 @@ EXPAND_ONLY_PREDEF       = YES
 EXPAND_AS_DEFINED        = BRIDGE_RIVETS_DEFINE_DETECTOR \
                             BRIDGE_RIVETS_DEFINE_DETECTOR_RANGE
 
+# Confirmed by bisection, not assumed: any header that #includes
+# another header also containing a BRIDGE_RIVETS_DEFINE_DETECTOR
+# invocation (e.g. deck/cpp17/stop_token.hpp #including
+# rivets/libstdcxx.hpp, itself using the macro) silently corrupts that
+# *other* header's own macro expansion -- rivets/clang.hpp's ge_18
+# Named Detector vanished from the generated docs, with no warning,
+# purely from a second header #including rivets/gcc.hpp (which also
+# invokes the macro), reproduced with SEARCH_INCLUDES both on and off.
+# Looks like a genuine Doxygen limitation in how EXPAND_AS_DEFINED
+# tracks a macro invocation shared across files reached more than one
+# way. BRIDGE_DOXYGEN (defined only for Doxygen, see PREDEFINED below)
+# plus a `#ifndef BRIDGE_DOXYGEN` guard on the specific #include lines
+# that trigger this (deck/cpp17/stop_token.hpp's #include of
+# rivets/libstdcxx.hpp) works around it: Doxygen already documents
+# that header directly via its own INPUT scan, so hiding the second,
+# indirect reference from Doxygen's parser loses no real coverage --
+# only the real compiler needs it, and the real compiler never defines
+# BRIDGE_DOXYGEN.
+PREDEFINED               = BRIDGE_DOXYGEN
+
 GENERATE_HTML            = YES
 GENERATE_LATEX           = NO
 GENERATE_MAN             = NO
