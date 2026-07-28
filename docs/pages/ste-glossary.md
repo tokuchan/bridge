@@ -142,6 +142,27 @@ another, and gives back true or false. `gt`, `ge`, `lt`, `le`, and
 To let code run only when a check passes. A Feature Test can gate a
 passthrough choice.
 
+### thread
+A separate line of execution, running inside the same program. Two
+threads can run at the same time.
+
+### join
+To wait for a thread to finish, before the calling code continues.
+
+### detach
+To separate a thread from its handle. The thread keeps running on
+its own; nothing can join it or ask it to stop through that handle
+again.
+
+### cancellation
+A cooperative request for a thread to stop what it is doing. The
+thread must check for this request itself; cancellation cannot force
+a thread to stop.
+
+### handle
+A value that refers to something else, such as a thread, without
+holding the thing itself.
+
 ### monadic method
 A method on `optional` (or a similar type) that lets you chain
 operations. Each method checks if the type holds a value. The method

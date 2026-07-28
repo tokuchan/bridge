@@ -13,16 +13,21 @@ See [`<thread>`](https://en.cppreference.com/w/cpp/thread/jthread) on cppreferen
 
 ## Synopsis
 
-`bridge::jthread` is a joining, cooperatively-cancellable thread,
-matching C++20's `std::jthread`: unlike `std::thread`, its destructor
-requests a stop and joins automatically if still joinable, rather than
-terminating the program. `bridge::stop_token`/`bridge::stop_source`
-are the cancellation primitives it's built on -- `std::jthread` doesn't
-exist at all before C++20, and neither does a pre-existing type for
-Truss to attach free functions onto (like `optional`), so Truss owns
-complete classes for all three, built directly on `std::thread` (a
-real C++11 facility) plus `<atomic>`/`<mutex>`/`<condition_variable>`
--- no platform-specific code needed.
+`bridge::jthread` is a joining, cooperatively-cancellable thread. It
+matches C++20's `std::jthread`. Unlike `std::thread`, its destructor
+requests a stop and joins automatically, when the thread is still
+joinable. `std::thread`'s own destructor terminates the program in
+that case instead.
+
+`bridge::stop_token` and `bridge::stop_source` are the cancellation
+primitives `jthread` is built on. `std::jthread` does not exist at
+all before C++20. There is also no C++17 type for Truss to attach
+free functions onto, the way `optional` has `std::optional`. So
+Truss owns complete classes for all three: `jthread`, `stop_token`,
+and `stop_source`. These classes are built directly on `std::thread`,
+a real C++11 facility, plus `<atomic>`, `<mutex>`, and
+`<condition_variable>`. This facility needs no platform-specific
+code.
 
 ## Example
 
@@ -53,45 +58,50 @@ int main() {
 ## Divergences
 
 - **`stop_callback` is not implemented.** Its destructor has a real
-  concurrent-correctness contract (must block if its callback is
-  currently running on another thread, must not deadlock if destroyed
-  from inside its own callback) -- genuinely the highest-risk,
-  hardest-to-verify code this facility would need, deferred rather
-  than rushed. `stop_token`/`stop_source`/`jthread` alone already cover
-  cooperative cancellation's common case (a `jthread` polling
-  `stop_requested()`); callback-based cancellation is rarer. Not a
-  disclosed silent divergence -- attempting to use `bridge::stop_callback`
-  simply fails to compile, the same loud, immediate way any genuinely
-  absent symbol would.
-- **`nostopstate_t`'s default constructor is `explicit`.** Matches
-  real `std::nostopstate_t`, but is easy to miss: `stop_source src{};`
-  cannot ambiguously resolve to the tag constructor.
+  concurrent-correctness contract. This destructor must block, when
+  its callback is currently running on another thread. This
+  destructor must not deadlock, when something destroys it from
+  inside its own callback. This is genuinely the highest-risk,
+  hardest-to-verify code this facility would need. This facility
+  defers this work, rather than rushing it. `stop_token`,
+  `stop_source`, and `jthread` alone already cover cooperative
+  cancellation's common case: a `jthread` that polls
+  `stop_requested()`. Callback-based cancellation is rarer. This is
+  not a disclosed silent divergence. Code that tries to use
+  `bridge::stop_callback` simply fails to compile, the same loud,
+  immediate way any genuinely absent symbol would.
+- **`nostopstate_t`'s default constructor is `explicit`.** This
+  matches real `std::nostopstate_t`. This is easy to miss:
+  `stop_source src{};` cannot ambiguously resolve to the tag
+  constructor.
 
 See [ADR-0017](https://github.com/tokuchan/bridge/blob/master/docs/adr/0017-jthread-stop-token-truss-owns-the-class.md)
 for the full fidelity scope and rationale.
 
 ## Passthrough
 
-Deck's passthrough condition is a Detector-backed override, not a bare
-Feature Test check: `BRIDGE_RIVETS_FEATURES_LIB_JTHREAD >= 201911L` is
-always required, and `BRIDGE_RIVETS_FEATURES_LIB_STOP_TOKEN >= 201907L`
-is honored normally *unless* libstdc++ is confirmed active
-(`bridge::rivets::libstdcxx`), where the macro is never published even
-though `stop_token` itself works -- confirmed by direct compiler probe
-on GCC 13-15 and Clang 20, not assumed. `jthread` and `stop_token`
-always select the same path together (one shared condition): a
+Deck's passthrough choice is a Detector-backed override, not a bare
+Feature Test check. `BRIDGE_RIVETS_FEATURES_LIB_JTHREAD >= 201911L`
+is always required. `BRIDGE_RIVETS_FEATURES_LIB_STOP_TOKEN >= 201907L`
+is honored normally, unless libstdc++ is confirmed active
+(`bridge::rivets::libstdcxx`). When libstdc++ is active, this facility
+never sees `BRIDGE_RIVETS_FEATURES_LIB_STOP_TOKEN` published, even
+though `stop_token` itself works. A direct compiler probe on GCC 13-15
+and Clang 20 confirmed this.
+
+`jthread` and `stop_token` always select the same path together, from
+one shared condition. If the two selections ever disagreed, a
 callable expecting `bridge::stop_token` would be a genuine type
-mismatch against real `std::jthread` if the two selections ever
-disagreed.
+mismatch against real `std::jthread`.
 
 <!-- BRIDGE-DOCS:BEGIN symbols -->
 | Symbol | Kind | Brief | cppreference |
 |---|---|---|---|
-| `BRIDGE_DECK_STOP_TOKEN_PASSTHROUGH` | define | Whether `stop_token`/`stop_source`/`jthread` should pass through to the real `std::` types. A Detector-backed override, not a bare Feature Test check -- see docs/adr/0017-jthread-stop-token-truss-owns-the-class.md. | [`<thread>::BRIDGE_DECK_STOP_TOKEN_PASSTHROUGH`](https://en.cppreference.com/w/cpp/thread/jthread) |
-| `jthread` | class | A joining, cooperatively-cancellable thread, matching `std::jthread`. Unlike `std::thread`, automatically requests a stop and joins on destruction if still joinable -- never terminates the program for an un-joined, un-detached thread the way `std::thread`'s own destructor does. | [`<thread>::jthread`](https://en.cppreference.com/w/cpp/thread/jthread) |
-| `nostopstate` | variable | Polyfill companion to stop_token. | [`<thread>::nostopstate`](https://en.cppreference.com/w/cpp/thread/jthread) |
-| `nostopstate_t` | struct | Tag type selecting `stop_source`'s no-state constructor, matching `std::nostopstate_t`. | [`<thread>::nostopstate_t`](https://en.cppreference.com/w/cpp/thread/jthread) |
-| `stop_source` | class | Owns (a share of) cancellation state and can request a stop, matching `std::stop_source`. | [`<thread>::stop_source`](https://en.cppreference.com/w/cpp/thread/jthread) |
-| `stop_token` | class | A handle to shared cancellation state, matching `std::stop_token`. Default-constructed with no state at all (`stop_possible()` false); otherwise obtained from a `stop_source::get_token()`. | [`<thread>::stop_token`](https://en.cppreference.com/w/cpp/thread/jthread) |
-| `swap` | function | Swaps `a`'s and `b`'s thread and stop-state. | [`<thread>::swap`](https://en.cppreference.com/w/cpp/thread/jthread) |
+| `BRIDGE_DECK_STOP_TOKEN_PASSTHROUGH` | define | This macro tells you whether `stop_token`, `stop_source`, and `jthread` should pass through to the real `std::` types. This macro is a Detector-backed override, not a bare Feature Test check. See docs/adr/0017-jthread-stop-token-truss-owns-the-class.md. | [`<thread>::BRIDGE_DECK_STOP_TOKEN_PASSTHROUGH`](https://en.cppreference.com/w/cpp/thread/jthread) |
+| `jthread` | class | This class is a joining, cooperatively-cancellable thread. This class matches `std::jthread`. | [`<thread>::jthread`](https://en.cppreference.com/w/cpp/thread/jthread) |
+| `nostopstate` | variable | This is the polyfill companion to stop_token. | [`<thread>::nostopstate`](https://en.cppreference.com/w/cpp/thread/jthread) |
+| `nostopstate_t` | struct | This tag type selects `stop_source`'s no-state constructor. This tag type matches `std::nostopstate_t`. | [`<thread>::nostopstate_t`](https://en.cppreference.com/w/cpp/thread/jthread) |
+| `stop_source` | class | This class owns a share of cancellation state. This class can request a stop. This class matches `std::stop_source`. | [`<thread>::stop_source`](https://en.cppreference.com/w/cpp/thread/jthread) |
+| `stop_token` | class | This class is a handle to shared cancellation state. This class matches `std::stop_token`. | [`<thread>::stop_token`](https://en.cppreference.com/w/cpp/thread/jthread) |
+| `swap` | function | This swaps `a`'s and `b`'s thread and stop-state. | [`<thread>::swap`](https://en.cppreference.com/w/cpp/thread/jthread) |
 <!-- BRIDGE-DOCS:END -->

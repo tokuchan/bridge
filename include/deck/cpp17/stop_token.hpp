@@ -1,31 +1,37 @@
 /// @file stop_token.hpp
-/// @brief The STL-shaped `stop_token`/`stop_source` Deck owns: a
-///        passthrough alias to `std::stop_token`/`std::stop_source`
-///        when the detected ecosystem has them, or Truss's polyfilled
-///        `bridge::truss::stop_token`/`stop_source` when it doesn't.
-///        Same shape as `deck/cpp17/span.hpp`: Truss already owns
-///        complete classes for the pre-C++20 case (docs/adr/0017-
-///        jthread-stop-token-truss-owns-the-class.md), so there's
-///        nothing left for Deck to wrap -- this selection is a plain
-///        type alias. Truss's classes never themselves pass through,
-///        even under C++20; this is the only place the selection
-///        happens. See docs/adr/0001-namespace-and-export-scheme.md
-///        for the namespace scheme and docs/adr/0008-best-effort-head-
-///        standard.md for the "behaviorally indistinguishable" bar
-///        this selection has to clear.
+/// @brief This file holds Deck's `stop_token` and `stop_source`.
+///        These types act the same way in every ecosystem.
 ///
-/// The passthrough condition is a Detector-backed override, not a bare
-/// Feature Test check: `BRIDGE_RIVETS_FEATURES_LIB_JTHREAD` is always
-/// required (the confirmed-reliable signal on every toolchain in this
-/// project's matrix), and `BRIDGE_RIVETS_FEATURES_LIB_STOP_TOKEN` is
-/// honored normally *unless* libstdc++ is the active standard library
-/// (`bridge::rivets::libstdcxx`), where it's never published even
-/// though `stop_token` itself works -- confirmed by direct compiler
-/// probe on GCC 13-15 and Clang 20 before writing this, not assumed.
-/// See docs/adr/0017 for the full rationale. `nostopstate_t`/
-/// `nostopstate` pass through the same way, not just `stop_token`/
-/// `stop_source` themselves -- same reasoning `expected`'s deck header
-/// needed for `unexpected`/`unexpect_t`.
+///        When the detected ecosystem has `std::stop_token` and
+///        `std::stop_source`, these are passthrough aliases to them.
+///        When the ecosystem does not have them yet, these are plain
+///        aliases to Truss's polyfill,
+///        `bridge::truss::stop_token`/`stop_source`.
+///
+///        This file has the same shape as `deck/cpp17/span.hpp`.
+///        Truss already owns complete classes for the pre-C++20 case
+///        (docs/adr/0017-jthread-stop-token-truss-owns-the-class.md).
+///        Deck has nothing left to wrap, so this choice is a plain
+///        type alias. Truss's classes never themselves pass through,
+///        even under C++20. This file is the only place this choice
+///        happens. See docs/adr/0001-namespace-and-export-scheme.md
+///        for the namespace rule. See docs/adr/0008-best-effort-head-
+///        standard.md for the bar this choice must clear.
+///
+/// This choice is a Detector-backed override, not a bare Feature Test
+/// check. `BRIDGE_RIVETS_FEATURES_LIB_JTHREAD` is always required.
+/// This project's matrix confirmed this is a reliable signal on every
+/// toolchain it covers. `BRIDGE_RIVETS_FEATURES_LIB_STOP_TOKEN` is
+/// honored normally, unless libstdc++ is the active standard library
+/// (`bridge::rivets::libstdcxx`). When libstdc++ is active, this
+/// facility never sees `BRIDGE_RIVETS_FEATURES_LIB_STOP_TOKEN`
+/// published, even though `stop_token` itself works. A direct
+/// compiler probe on GCC 13-15 and Clang 20 confirmed this, before
+/// this file relied on it. See docs/adr/0017 for the full rationale.
+///
+/// `nostopstate_t` and `nostopstate` pass through the same way, not
+/// just `stop_token` and `stop_source` themselves. `expected`'s deck
+/// header needs the same choice for `unexpected` and `unexpect_t`.
 #pragma once
 
 #include <rivets/features.hpp>
@@ -43,9 +49,10 @@
 #endif
 
 /// @def BRIDGE_DECK_STOP_TOKEN_PASSTHROUGH
-/// @brief Whether `stop_token`/`stop_source`/`jthread` should pass
-///        through to the real `std::` types. A Detector-backed
-///        override, not a bare Feature Test check -- see
+/// @brief This macro tells you whether `stop_token`, `stop_source`,
+///        and `jthread` should pass through to the real `std::`
+///        types. This macro is a Detector-backed override, not a bare
+///        Feature Test check. See
 ///        docs/adr/0017-jthread-stop-token-truss-owns-the-class.md.
 #define BRIDGE_DECK_STOP_TOKEN_PASSTHROUGH                                                                           \
     (BRIDGE_RIVETS_FEATURES_LIB_JTHREAD >= 201911L &&                                                                \
@@ -61,33 +68,36 @@ namespace bridge::detail::deck::cpp17::stop_token {
 
 #if BRIDGE_DECK_STOP_TOKEN_PASSTHROUGH
 
-/// @brief Passthrough: this ecosystem's `std::stop_token` is
-///        available (confirmed via `__cpp_lib_jthread`, with a
-///        Detector-backed override for libstdc++'s
-///        `__cpp_lib_stop_token` gap), so bridge adds nothing.
+/// @brief This is Deck's passthrough choice. This ecosystem's
+///        `std::stop_token` is available. This macro confirmed this
+///        through `__cpp_lib_jthread`, with a Detector-backed
+///        override for libstdc++'s `__cpp_lib_stop_token` gap.
+///        Bridge adds nothing here.
 using stop_token = std::stop_token;
-/// @brief Passthrough companion to @ref stop_token.
+/// @brief This is the passthrough companion to @ref stop_token.
 using stop_source = std::stop_source;
-/// @brief Passthrough companion to @ref stop_token.
+/// @brief This is the passthrough companion to @ref stop_token.
 using nostopstate_t = std::nostopstate_t;
-/// @brief Passthrough companion to @ref stop_token.
+/// @brief This is the passthrough companion to @ref stop_token.
 inline constexpr nostopstate_t nostopstate = std::nostopstate;
 
 #else
 
-/// @brief Truss's polyfill, for ecosystems without a reliably-signaled
-///        native `std::stop_token` yet.
+/// @brief This is Truss's polyfill, for an ecosystem without a
+///        reliably-signaled `std::stop_token` yet.
 using stop_token = bridge::truss::stop_token;
-/// @brief Polyfill companion to @ref stop_token.
+/// @brief This is the polyfill companion to @ref stop_token.
 using stop_source = bridge::truss::stop_source;
-/// @brief Polyfill companion to @ref stop_token.
+/// @brief This is the polyfill companion to @ref stop_token.
 using nostopstate_t = bridge::truss::nostopstate_t;
-/// @brief Polyfill companion to @ref stop_token.
+/// @brief This is the polyfill companion to @ref stop_token.
 inline constexpr nostopstate_t nostopstate = bridge::truss::nostopstate;
 
 #endif
 
-/// @brief Symbols promoted to `bridge::exports::deck`.
+/// @brief This namespace promotes `stop_token`, `stop_source`,
+///        `nostopstate_t`, and `nostopstate` to
+///        `bridge::exports::deck`.
 namespace exports {
 using bridge::detail::deck::cpp17::stop_token::stop_token;
 using bridge::detail::deck::cpp17::stop_token::stop_source;
@@ -97,22 +107,24 @@ using bridge::detail::deck::cpp17::stop_token::nostopstate;
 
 } // namespace bridge::detail::deck::cpp17::stop_token
 
-/// @brief Curated re-export surface; see docs/adr/0001-namespace-and-export-scheme.md.
+/// @brief This is the Exports namespace for `stop_token`. See
+///        docs/adr/0001-namespace-and-export-scheme.md for the rule
+///        behind this namespace.
 ///
-/// No `inline namespace stop_token { ... }` wrapper here (same reason
-/// as deck/cpp17/expected.hpp's exports): this header's primary export
-/// is a type named `stop_token`, and nesting it inside an inline
-/// namespace of the identical name makes that inline namespace's own
-/// qualified name reachable at this same scope, colliding with the
-/// promoted type. Promoting straight from the `cpp17` inline namespace
-/// avoids the collision.
+/// This namespace has no `inline namespace stop_token { ... }`
+/// wrapper, for the same reason as deck/cpp17/expected.hpp's Exports
+/// namespace. This header's primary export is a type named
+/// `stop_token`. The wrapper's name would be `stop_token` too, and
+/// the two names would collide. This namespace promotes `stop_token`
+/// straight from the `cpp17` inline namespace instead, and avoids the
+/// collision.
 namespace bridge::exports::deck {
 inline namespace cpp17 {
 using namespace bridge::detail::deck::cpp17::stop_token::exports;
 } // namespace cpp17
 } // namespace bridge::exports::deck
 
-/// @brief Deck's public API surface.
+/// @brief This is Deck's public API.
 namespace bridge::deck {
 using bridge::exports::deck::stop_token;
 using bridge::exports::deck::stop_source;
@@ -120,11 +132,12 @@ using bridge::exports::deck::nostopstate_t;
 using bridge::exports::deck::nostopstate;
 } // namespace bridge::deck
 
-/// @brief Bridge's public API surface -- flattened all the way to
-///        bridge::, matching expected's own promotion chain: every
-///        companion symbol is promoted from bridge::deck:: here, not
-///        bridge::truss:: directly, so they always match whichever
-///        path bridge::stop_token itself selected.
+/// @brief This is bridge's public API. Every symbol here reaches all
+///        the way to `bridge::`, matching `expected`'s own promotion
+///        chain. Every companion symbol promotes from
+///        `bridge::deck::` here, not from `bridge::truss::` directly.
+///        This keeps every companion matching whichever path
+///        `bridge::stop_token` itself selected.
 namespace bridge {
 using bridge::deck::stop_token;
 using bridge::deck::stop_source;
