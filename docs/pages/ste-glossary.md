@@ -92,6 +92,19 @@ gets this value.
 ### check
 To look at something, to find one fact about it.
 
+### macro
+A named piece of text that the preprocessor replaces with other text,
+before compiling. A macro can take arguments, like a function.
+
+### expand
+To replace a macro with the text it stands for. The preprocessor does
+this before compiling.
+
+### translation unit
+One source file, plus every header it includes, after the
+preprocessor expands every macro and directive in it. The compiler
+compiles one translation unit at a time.
+
 ## Bridge-specific words
 
 ### polyfill

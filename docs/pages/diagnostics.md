@@ -10,10 +10,10 @@
 ## Synopsis
 
 `BRIDGE_RIVETS_DIVERGENCE_NOTE("...")` emits a compiler-visible
-`#pragma message` at the point of expansion -- the mechanism every
-other facility page's own Divergences section relies on to surface a
-disclosed, surprising gap *at the point it matters*, not just in an
-ADR a consumer has to go spelunking for.
+`#pragma message`, at the point where it expands. Every other facility
+page's Divergences section relies on this macro. This macro shows a
+disclosed, surprising gap at the point it matters. A consumer does not
+need to search an ADR to find it.
 
 ## Example
 
@@ -25,23 +25,24 @@ BRIDGE_RIVETS_DIVERGENCE_NOTE("bridge::widget (polyfill): rounds down instead of
 int main() {}
 ```
 
-Placed where the *diverging* code path is actually selected (a Deck
-header's polyfill branch), so it only fires for a translation unit
-actually on that path.
+Place this macro where the diverging code path is actually selected,
+for example inside a Deck header's polyfill branch. This macro then
+only fires for a translation unit on that path.
 
 ## Notes
 
-- Verified to compile cleanly under `-Wall -Wextra -Werror` on both GCC
-  (a note, immune to `-Werror` by construction) and Clang (a warning
-  under `-W#pragma-messages`, but doesn't trigger `-Werror`).
-- Not every gap gets one: a limitation that's simply absent
-  functionality gets a normal, self-explanatory compile error instead.
-  See [ADR-0011](https://github.com/tokuchan/bridge/blob/master/docs/adr/0011-warn-on-surprising-facility-divergences.md)
-  for the full policy on which kinds of gaps qualify.
+- This macro compiles cleanly under `-Wall -Wextra -Werror`, on both
+  GCC and Clang. On GCC, `#pragma message` is a note. A note is immune
+  to `-Werror`. On Clang, `#pragma message` is a warning under
+  `-W#pragma-messages`. This warning does not trigger `-Werror`.
+- Not every gap gets a note. A limitation that is simply missing
+  functionality gets a normal compile error instead. See
+  [ADR-0011](https://github.com/tokuchan/bridge/blob/master/docs/adr/0011-warn-on-surprising-facility-divergences.md)
+  for the full policy on which gaps qualify.
 
 <!-- BRIDGE-DOCS:BEGIN symbols -->
 | Symbol | Kind | Brief |
 |---|---|---|
-| `BRIDGE_RIVETS_DIVERGENCE_NOTE` | define | Emits `#pragma message` with `msg` at the point of expansion. |
-| `BRIDGE_RIVETS_PRAGMA` | define | Turns a token sequence into a `_Pragma` string-literal argument. Exposition-only: use BRIDGE_RIVETS_DIVERGENCE_NOTE directly instead. |
+| `BRIDGE_RIVETS_DIVERGENCE_NOTE` | define | This macro emits `#pragma message` with `msg`, at the point where this macro expands. |
+| `BRIDGE_RIVETS_PRAGMA` | define | This macro turns a token sequence into a `_Pragma` string-literal argument. |
 <!-- BRIDGE-DOCS:END -->
