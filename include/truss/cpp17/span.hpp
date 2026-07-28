@@ -1,26 +1,27 @@
 /// @file span.hpp
-/// @brief Truss's from-scratch `std::span<T, Extent>` polyfill for C++17.
+/// @brief This file holds Truss's `std::span<T, Extent>` polyfill for
+///        C++17. This class is built from scratch, not attached to an
+///        existing type.
 ///
-///        `span` doesn't exist at all before C++20 -- like `expected`
-///        (docs/adr/0010-expected-truss-owns-the-class.md), there's no
-///        pre-existing C++17 type for Truss to attach free functions
-///        onto, so Truss owns a complete class instead. See
+///        `span` does not exist at all before C++20. Like `expected`
+///        (docs/adr/0010-expected-truss-owns-the-class.md), there is
+///        no C++17 type for Truss to attach free functions onto. This
+///        is why Truss owns a complete class instead. See
 ///        docs/adr/0015-span-truss-owns-the-class.md for the full
-///        fidelity scope: both static and dynamic `Extent` are
-///        supported in full (including the storage-layout difference
-///        and the static/dynamic conversion rules), the
-///        range/container-constructing overloads are implemented for
-///        the specific named cases real code overwhelmingly needs
-///        (not a generic SFINAE net approximating `ranges::
-///        contiguous_range`), and the C++23 tuple-like interface
-///        (`get<I>`, structured bindings) is a disclosed, deferred
-///        follow-up.
+///        scope. Both static and dynamic `Extent` are supported in
+///        full, including the storage-layout difference and the
+///        static/dynamic conversion rules. The range/container-
+///        constructing overloads cover the specific named cases real
+///        code needs most, not a generic check for any contiguous
+///        range. The C++23 tuple-like interface is a disclosed,
+///        deferred follow-up. This interface is `get<I>` plus
+///        structured bindings.
 ///
-///        `bridge::truss::span<T, Extent>` is unconditionally this
-///        polyfill, regardless of standard or toolchain -- that
-///        selection happens exactly once, in Deck
-///        (`deck/cpp17/span.hpp`), independent of whatever other
-///        facility Deck is selecting elsewhere.
+///        `bridge::truss::span<T, Extent>` is always this polyfill,
+///        regardless of standard or toolchain. Deck makes the
+///        passthrough-or-polyfill choice exactly once, in
+///        `deck/cpp17/span.hpp`. This choice does not depend on
+///        whatever other facility Deck is selecting elsewhere.
 #pragma once
 
 #include <array>
@@ -32,8 +33,9 @@
 
 namespace bridge::detail::truss::cpp17::span {
 
-/// @brief Sentinel `Extent` value meaning "the size is only known at
-///        runtime." Matches real `std::dynamic_extent`.
+/// @brief This is the sentinel `Extent` value. It means the size is
+///        only known at runtime. This value matches real
+///        `std::dynamic_extent`.
 inline constexpr std::size_t dynamic_extent = static_cast<std::size_t>(-1);
 
 template <class T, std::size_t Extent>
@@ -93,151 +95,160 @@ struct is_std_array<std::array<U, N>> : std::true_type {};
 } // namespace storage_detail
 /// \endcond
 
-/// @brief A non-owning view over a contiguous sequence of `T`, with
-///        an `Extent` known either at compile time or only at
-///        runtime. Matches real `std::span<T, Extent>`'s shape:
-///        trivially copyable, never allocates, never extends the
-///        viewed sequence's lifetime.
+/// @brief This class is a non-owning view over a contiguous sequence
+///        of `T`. `Extent` is known either at compile time or only at
+///        runtime.
+///
+///        This class matches real `std::span<T, Extent>`'s shape.
+///        This class is trivially copyable. This class never
+///        allocates. This class never extends the lifetime of the
+///        sequence it views.
 /// @tparam T The element type.
-/// @tparam Extent The compile-time extent, or `dynamic_extent` (the
-///         default) when only known at runtime.
+/// @tparam Extent The compile-time extent. The default is
+///         `dynamic_extent`, for when `Extent` is only known at
+///         runtime.
 /// @see https://en.cppreference.com/w/cpp/container/span
 template <class T, std::size_t Extent = dynamic_extent>
 class span : private storage_detail::span_storage<T, Extent> {
     using base = storage_detail::span_storage<T, Extent>;
 
 public:
-    /// @brief The element type.
+    /// @brief This is the element type.
     using element_type = T;
-    /// @brief `T` with cv-qualification stripped.
+    /// @brief This is `T`, with cv-qualification stripped.
     using value_type = std::remove_cv_t<T>;
-    /// @brief The type `size()`/`size_bytes()` return.
+    /// @brief This is the type that `size()` and `size_bytes()`
+    ///        return.
     using size_type = std::size_t;
-    /// @brief The type iterator differences are expressed in.
+    /// @brief This is the type that iterator differences use.
     using difference_type = std::ptrdiff_t;
-    /// @brief Pointer to an element.
+    /// @brief This is a pointer to an element.
     using pointer = T*;
-    /// @brief Pointer to a const-qualified element.
+    /// @brief This is a pointer to a const-qualified element.
     using const_pointer = const T*;
-    /// @brief Reference to an element.
+    /// @brief This is a reference to an element.
     using reference = T&;
-    /// @brief Reference to a const-qualified element.
+    /// @brief This is a reference to a const-qualified element.
     using const_reference = const T&;
-    /// @brief A random-access iterator over the span's elements.
+    /// @brief This is a random-access iterator over the span's
+    ///        elements.
     using iterator = pointer;
-    /// @brief A reverse random-access iterator over the span's elements.
+    /// @brief This is a reverse random-access iterator over the
+    ///        span's elements.
     using reverse_iterator = std::reverse_iterator<iterator>;
 
-    /// @brief The extent this specialization was instantiated with.
+    /// @brief This is the extent this specialization was built with.
     static constexpr std::size_t extent = Extent;
 
-    /// @brief Default-constructs an empty span. Only available when
-    ///        `Extent == dynamic_extent || Extent == 0`.
+    /// @brief This constructor builds an empty span. This
+    ///        constructor is only available when `Extent ==
+    ///        dynamic_extent || Extent == 0`.
     ///
-    ///        Matches real `std::span`'s constraint, confirmed via
-    ///        probe (`std::is_default_constructible_v` both ways
-    ///        against `std::span<int,3>`/`std::span<int,0>`) rather
-    ///        than assumed from the standard's prose alone.
+    ///        This constructor matches real `std::span`'s
+    ///        constraint. A probe confirmed this match. The probe
+    ///        checked `std::is_default_constructible_v` both ways,
+    ///        against both `std::span<int, 3>` and
+    ///        `std::span<int, 0>`.
     template <std::size_t E = Extent, class = std::enable_if_t<E == dynamic_extent || E == 0>>
     constexpr span() noexcept {}
 
-    /// @brief Constructs from a pointer and an element count.
+    /// @brief This constructor builds a span from a pointer and an element count.
     /// @param first Pointer to the first element.
     /// @param count The number of elements.
     constexpr span(pointer first, size_type count) noexcept : base(first, count) {}
 
-    /// @brief Constructs from a pair of random-access iterators.
+    /// @brief This constructor builds a span from a pair of
+    ///        random-access iterators.
     /// @param first An iterator to the first element.
     /// @param last An iterator one past the last element.
     template <class It, class = std::enable_if_t<std::is_convertible_v<
                              typename std::iterator_traits<It>::iterator_category, std::random_access_iterator_tag>>>
     constexpr span(It first, It last) noexcept : base(&*first, static_cast<size_type>(last - first)) {}
 
-    /// @brief Constructs from a C array.
+    /// @brief This constructor builds a span from a C array.
     /// @param arr The array. Must outlive this span.
     template <std::size_t N>
     constexpr span(element_type (&arr)[N]) noexcept : base(arr, N) {}
 
-    /// @brief Constructs from a mutable `std::array`.
+    /// @brief This constructor builds a span from a mutable
+    ///        `std::array`.
     ///
-    ///        Constrained the same way as the C array/vector/string
-    ///        overloads below (`U(*)[]` convertible to
-    ///        `element_type(*)[]`) -- without this, `is_constructible_v`
-    ///        reports true for combinations that would need to
-    ///        silently discard `const` in the constructor body,
-    ///        confirmed by hitting exactly that false-positive
-    ///        `is_constructible_v` result before adding the
-    ///        constraint, not assumed.
+    ///        This constructor is constrained the same way as the C
+    ///        array, vector, and string overloads below: `U(*)[]`
+    ///        must convert to `element_type(*)[]`. Without this
+    ///        constraint, `is_constructible_v` reports true for
+    ///        combinations that would need to silently discard
+    ///        `const` in the constructor body.
     /// @param arr The array. Must outlive this span.
     template <class U, std::size_t N, class = std::enable_if_t<std::is_convertible_v<U (*)[], element_type (*)[]>>>
     constexpr span(std::array<U, N>& arr) noexcept : base(arr.data(), N) {}
 
-    /// @brief Constructs from a const `std::array`, yielding a span
-    ///        over const elements.
+    /// @brief This constructor builds a span from a const
+    ///        `std::array`. The new span is over const elements.
     /// @param arr The array. Must outlive this span.
     template <class U, std::size_t N,
               class = std::enable_if_t<std::is_convertible_v<const U (*)[], element_type (*)[]>>>
     constexpr span(const std::array<U, N>& arr) noexcept : base(arr.data(), N) {}
 
-    /// @brief Constructs from a mutable `std::vector`.
+    /// @brief This constructor builds a span from a mutable
+    ///        `std::vector`.
     /// @param vec The vector to view. Must outlive this span.
     template <class U, class Alloc, class = std::enable_if_t<std::is_convertible_v<U (*)[], element_type (*)[]>>>
     constexpr span(std::vector<U, Alloc>& vec) noexcept : base(vec.data(), vec.size()) {}
 
-    /// @brief Constructs from a const `std::vector`, yielding a span
-    ///        over const elements.
+    /// @brief This constructor builds a span from a const
+    ///        `std::vector`. The new span is over const elements.
     /// @param vec The vector to view. Must outlive this span.
     template <class U, class Alloc,
               class = std::enable_if_t<std::is_convertible_v<const U (*)[], element_type (*)[]>>>
     constexpr span(const std::vector<U, Alloc>& vec) noexcept : base(vec.data(), vec.size()) {}
 
-    /// @brief Constructs from a mutable `std::string`.
+    /// @brief This constructor builds a span from a mutable
+    ///        `std::string`.
     /// @param str The string to view. Must outlive this span.
     template <class E = element_type, class = std::enable_if_t<std::is_convertible_v<char (*)[], E (*)[]>>>
     constexpr span(std::string& str) noexcept : base(str.data(), str.size()) {}
 
-    /// @brief Constructs from a const `std::string`, yielding a span
-    ///        over const elements.
+    /// @brief This constructor builds a span from a const
+    ///        `std::string`. The new span is over const elements.
     /// @param str The string to view. Must outlive this span.
     template <class E = element_type, class = std::enable_if_t<std::is_convertible_v<const char (*)[], E (*)[]>>>
     constexpr span(const std::string& str) noexcept : base(str.data(), str.size()) {}
 
-    /// @brief Converting constructor from a span of a different
-    ///        extent, constrained to same-type-up-to-cv-qualification
-    ///        elements (never derived-to-base).
+    /// @brief This converting constructor takes a span of a
+    ///        different extent.
     ///
-    ///        Constrained on array-pointer convertibility -- `U(*)[]`
-    ///        convertible to `element_type(*)[]` -- matching real
-    ///        `std::span`'s own element-type constraint exactly: true
-    ///        only when `U` and `T` are the same type up to
-    ///        cv-qualification, never for a derived-to-base element
-    ///        type, confirmed via probe (`span<Derived>` does not
-    ///        convert to, nor is even explicitly constructible into,
-    ///        `span<Base>`) rather than assumed.
+    ///        This constructor requires `U(*)[]` to convert to
+    ///        `element_type(*)[]`. This matches real `std::span`'s
+    ///        own element-type constraint exactly: true only when `U`
+    ///        and `T` are the same type up to cv-qualification, never
+    ///        for a derived-to-base element type. A probe confirmed
+    ///        this: `span<Derived>` does not convert to, and is not
+    ///        even explicitly constructible into, `span<Base>`.
     ///
-    ///        Real `std::span` is conditionally `explicit` here --
-    ///        `explicit(Extent != dynamic_extent && OtherExtent ==
-    ///        dynamic_extent)`, i.e. only when narrowing from an
-    ///        unknown-at-compile-time source extent to a known one --
-    ///        which needs C++20's conditional `explicit(bool)` to
-    ///        express directly. Reproduced exactly anyway, without
-    ///        needing that C++20 feature or accepting `expected`-style
-    ///        always-explicit conservatism (docs/adr/0010): the two
-    ///        conditions are mutually exclusive, so two separate
-    ///        constructor templates -- one plain, one `explicit`, each
-    ///        SFINAE-enabled on the opposite half of the same
-    ///        condition -- give the identical result, confirmed via
-    ///        probe against real `std::span` (implicit for same-or-
-    ///        compatible extents regardless of cv-change; explicit-only
-    ///        for dynamic-to-fixed) before settling on this shape. The
-    ///        SFINAE condition is deliberately on an extra defaulted
-    ///        *function* parameter, not a defaulted template type
-    ///        parameter -- two constructor templates with otherwise
-    ///        identical template-parameter-list shapes are rejected as
-    ///        "cannot be overloaded" even when their `enable_if`
-    ///        conditions differ, confirmed by hitting exactly that
-    ///        error with a first draft using the template-parameter
-    ///        form, not assumed.
+    ///        This constructor is implicit. The next constructor
+    ///        below is its `explicit` counterpart, for the one case
+    ///        real `std::span` requires `explicit`: narrowing from a
+    ///        dynamic source extent to a known destination extent.
+    ///
+    ///        Real `std::span` expresses this rule with C++20's
+    ///        conditional `explicit(bool)`, a feature this project's
+    ///        C++17 floor does not have. This constructor and its
+    ///        `explicit` counterpart below reproduce the same rule
+    ///        with two separate constructor templates instead, one
+    ///        plain and one `explicit`, each SFINAE-enabled on the
+    ///        opposite half of the same condition. A probe confirmed
+    ///        this gives the identical result as real `std::span`:
+    ///        implicit for same-or-compatible extents regardless of
+    ///        cv-change, explicit-only for dynamic-to-fixed.
+    ///
+    ///        The SFINAE condition sits on an extra defaulted
+    ///        *function* parameter here, not a defaulted template
+    ///        type parameter. Two constructor templates with
+    ///        otherwise identical template-parameter-list shapes are
+    ///        rejected as "cannot be overloaded," even when their
+    ///        `enable_if` conditions differ. A first draft using the
+    ///        template-parameter form hit exactly that error.
     /// @param other The span to convert from.
     template <class U, std::size_t OtherExtent>
     constexpr span(const span<U, OtherExtent>& other,
@@ -246,10 +257,12 @@ public:
                                      int> = 0) noexcept
         : base(other.data(), other.size()) {}
 
-    /// @brief `explicit` counterpart to the converting constructor
-    ///        above, for the one case real `std::span` requires it:
-    ///        narrowing from an unknown-at-compile-time source extent
-    ///        to a known one.
+    /// @brief This is the `explicit` counterpart to the converting
+    ///        constructor above.
+    ///
+    ///        Real `std::span` requires `explicit` for one case:
+    ///        narrowing from a dynamic source extent to a known
+    ///        destination extent. This constructor handles that case.
     /// @param other The span to convert from.
     template <class U, std::size_t OtherExtent>
     explicit constexpr span(const span<U, OtherExtent>& other,
@@ -258,57 +271,60 @@ public:
                                                int> = 0) noexcept
         : base(other.data(), other.size()) {}
 
-    /// @brief Copy constructor.
+    /// @brief This is the copy constructor.
     constexpr span(const span&) noexcept = default;
-    /// @brief Copy assignment.
+    /// @brief This is copy assignment.
     /// @return `*this`.
     constexpr span& operator=(const span&) noexcept = default;
 
-    /// @brief The number of elements.
+    /// @brief This is the number of elements.
     /// @return The count.
     constexpr size_type size() const noexcept { return base::extent_value; }
 
-    /// @brief The number of bytes the viewed elements occupy.
+    /// @brief This is the number of bytes the viewed elements occupy.
     /// @return The byte count.
     constexpr size_type size_bytes() const noexcept { return base::extent_value * sizeof(element_type); }
 
-    /// @brief Whether the span is empty.
+    /// @brief This checks whether the span is empty.
     /// @return `true` if `size() == 0`.
     constexpr bool empty() const noexcept { return size() == 0; }
 
-    /// @brief Pointer to the first element, or a value that shall not
-    ///        be dereferenced if `empty()`.
+    /// @brief This is a pointer to the first element. Do not
+    ///        dereference this pointer when `empty()` is true.
     /// @return The pointer.
     constexpr pointer data() const noexcept { return base::data_; }
 
-    /// @brief The first element. Precondition: not `empty()`.
+    /// @brief This is the first element. `empty()` must be false.
     /// @return A reference to the first element.
     constexpr reference front() const { return base::data_[0]; }
 
-    /// @brief The last element. Precondition: not `empty()`.
+    /// @brief This is the last element. `empty()` must be false.
     /// @return A reference to the last element.
     constexpr reference back() const { return base::data_[size() - 1]; }
 
-    /// @brief The element at `idx`. Precondition: `idx < size()`.
+    /// @brief This is the element at `idx`. `idx` must be less than
+    ///        `size()`.
     /// @param idx The index.
     /// @return A reference to the element at `idx`.
     constexpr reference operator[](size_type idx) const { return base::data_[idx]; }
 
-    /// @brief An iterator to the first element.
+    /// @brief This is an iterator to the first element.
     /// @return The iterator.
     constexpr iterator begin() const noexcept { return base::data_; }
-    /// @brief An iterator one past the last element.
+    /// @brief This is an iterator one past the last element.
     /// @return The iterator.
     constexpr iterator end() const noexcept { return base::data_ + size(); }
-    /// @brief A reverse iterator to the last element.
+    /// @brief This is a reverse iterator to the last element.
     /// @return The iterator.
     constexpr reverse_iterator rbegin() const noexcept { return reverse_iterator(end()); }
-    /// @brief A reverse iterator one before the first element.
+    /// @brief This is a reverse iterator one before the first
+    ///        element.
     /// @return The iterator.
     constexpr reverse_iterator rend() const noexcept { return reverse_iterator(begin()); }
 
-    /// @brief The first `Count` elements, as a fixed-extent span.
-    ///        Matches real `std::span::first<Count>()`.
+    /// @brief This returns the first `Count` elements, as a
+    ///        fixed-extent span. This matches real
+    ///        `std::span::first<Count>()`.
     /// @tparam Count The number of elements, known at compile time.
     /// @return The sub-span.
     template <std::size_t Count>
@@ -316,8 +332,9 @@ public:
         return span<element_type, Count>(data(), Count);
     }
 
-    /// @brief The first `count` elements. Always `dynamic_extent`,
-    ///        even called on a fixed-extent span, matching real
+    /// @brief This returns the first `count` elements. The result is
+    ///        always `dynamic_extent`, even when you call this on a
+    ///        fixed-extent span. This matches real
     ///        `std::span::first(size_type)`.
     /// @param count The number of elements.
     /// @return The sub-span.
@@ -325,7 +342,8 @@ public:
         return span<element_type, dynamic_extent>(data(), count);
     }
 
-    /// @brief The last `Count` elements, as a fixed-extent span.
+    /// @brief This returns the last `Count` elements, as a
+    ///        fixed-extent span.
     /// @tparam Count The number of elements, known at compile time.
     /// @return The sub-span.
     template <std::size_t Count>
@@ -333,8 +351,9 @@ public:
         return span<element_type, Count>(data() + (size() - Count), Count);
     }
 
-    /// @brief The last `count` elements, as a dynamic-extent span --
-    ///        always `dynamic_extent`, matching real
+    /// @brief This returns the last `count` elements, as a
+    ///        dynamic-extent span. The result is always
+    ///        `dynamic_extent`. This matches real
     ///        `std::span::last(size_type)`.
     /// @param count The number of elements.
     /// @return The sub-span.
@@ -342,10 +361,11 @@ public:
         return span<element_type, dynamic_extent>(data() + (size() - count), count);
     }
 
-    /// @brief A sub-view starting at `Offset`, of `Count` elements (or
-    ///        the remainder, if `Count == dynamic_extent`). The result
-    ///        extent is computed at compile time, matching real
-    ///        `std::span::subspan<Offset, Count>()` exactly.
+    /// @brief This returns a sub-view starting at `Offset`, of
+    ///        `Count` elements. When `Count == dynamic_extent`, the
+    ///        sub-view holds the remainder instead. This method
+    ///        computes the result extent at compile time, matching
+    ///        real `std::span::subspan<Offset, Count>()` exactly.
     /// @tparam Offset The starting offset, known at compile time.
     /// @tparam Count The number of elements, or `dynamic_extent`
     ///         (the default) for the remainder.
@@ -356,9 +376,10 @@ public:
         return span<element_type, resolved>(data() + Offset, Count == dynamic_extent ? size() - Offset : Count);
     }
 
-    /// @brief A sub-view starting at `offset`, of `count` elements (or
-    ///        the remainder, if `count == dynamic_extent`, the
-    ///        default) -- always `dynamic_extent`, matching real
+    /// @brief This returns a sub-view starting at `offset`, of
+    ///        `count` elements. The default for `count` is
+    ///        `dynamic_extent`, for the remainder. The result is
+    ///        always `dynamic_extent`, matching real
     ///        `std::span::subspan(offset, count)`.
     /// @param offset The starting offset.
     /// @param count The number of elements, or `dynamic_extent` (the
@@ -369,26 +390,30 @@ public:
     }
 };
 
-/// @brief Reinterprets `s`'s elements as a read-only view of their
-///        underlying bytes. Matches real `std::as_bytes`.
+/// @brief This function reinterprets `s`'s elements as a read-only
+///        view of their underlying bytes. This matches real
+///        `std::as_bytes`.
 /// @tparam T The source span's element type.
 /// @tparam Extent The source span's extent.
 /// @param s The span to reinterpret.
-/// @return A `span<const std::byte, ByteExtent>` over the same memory,
-///         where `ByteExtent` is `s.size_bytes()` when `Extent` is
-///         known at compile time, or `dynamic_extent` otherwise --
-///         confirmed via probe that real `std::as_bytes`'s byte count
-///         is `size() * sizeof(T)`, not assumed.
+/// @return A `span<const std::byte, ByteExtent>` over the same
+///         memory. `ByteExtent` is `s.size_bytes()` when `Extent` is
+///         known at compile time. `ByteExtent` is `dynamic_extent`
+///         otherwise. A probe confirmed that real `std::as_bytes`'s
+///         byte count is `size() * sizeof(T)`.
 /// @see https://en.cppreference.com/w/cpp/container/span/as_bytes
 template <class T, std::size_t Extent>
 span<const std::byte, Extent == dynamic_extent ? dynamic_extent : Extent * sizeof(T)> as_bytes(span<T, Extent> s) {
     return {reinterpret_cast<const std::byte*>(s.data()), s.size_bytes()};
 }
 
-/// @brief Reinterprets `s`'s elements as a writable view of their
-///        underlying bytes. Matches real `std::as_writable_bytes`.
-///        Only participates when `T` isn't itself const-qualified,
-///        matching the real function's constraint.
+/// @brief This function reinterprets `s`'s elements as a writable
+///        view of their underlying bytes. This matches real
+///        `std::as_writable_bytes`.
+///
+///        This function only participates when `T` is not itself
+///        const-qualified. This matches the real function's
+///        constraint.
 /// @tparam T The source span's element type.
 /// @tparam Extent The source span's extent.
 /// @param s The span to reinterpret.
@@ -399,7 +424,9 @@ span<std::byte, Extent == dynamic_extent ? dynamic_extent : Extent * sizeof(T)> 
     return {reinterpret_cast<std::byte*>(s.data()), s.size_bytes()};
 }
 
-/// @brief Symbols promoted to `bridge::exports::truss`.
+/// @brief This namespace promotes `dynamic_extent`, `span`,
+///        `as_bytes`, and `as_writable_bytes` to
+///        `bridge::exports::truss`.
 namespace exports {
 using bridge::detail::truss::cpp17::span::dynamic_extent;
 using bridge::detail::truss::cpp17::span::span;
@@ -409,22 +436,23 @@ using bridge::detail::truss::cpp17::span::as_writable_bytes;
 
 } // namespace bridge::detail::truss::cpp17::span
 
-/// @brief Curated re-export surface; see docs/adr/0001-namespace-and-export-scheme.md.
+/// @brief This is the Exports namespace for `span`. See
+///        docs/adr/0001-namespace-and-export-scheme.md for the rule
+///        behind this namespace.
 ///
-/// No `inline namespace span { ... }` wrapper here (same reason as
-/// truss/cpp17/expected.hpp's exports): this header's primary export
-/// is a type named `span`, and nesting it inside an inline namespace
-/// of the identical name makes that inline namespace's own qualified
-/// name reachable at this same scope, colliding with the promoted
-/// type. Promoting straight from the `cpp17` inline namespace avoids
-/// the collision.
+/// This namespace has no `inline namespace span { ... }` wrapper, for
+/// the same reason as truss/cpp17/expected.hpp's Exports namespace.
+/// This header's primary export is a type named `span`. The wrapper's
+/// name would be `span` too, and the two names would collide. This
+/// namespace promotes `span` straight from the `cpp17` inline
+/// namespace instead, and avoids the collision.
 namespace bridge::exports::truss {
 inline namespace cpp17 {
 using namespace bridge::detail::truss::cpp17::span::exports;
 } // namespace cpp17
 } // namespace bridge::exports::truss
 
-/// @brief Truss's public API surface.
+/// @brief This is Truss's public API.
 namespace bridge::truss {
 using bridge::exports::truss::dynamic_extent;
 using bridge::exports::truss::span;

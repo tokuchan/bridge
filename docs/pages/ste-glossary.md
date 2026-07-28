@@ -73,6 +73,14 @@ actions and the data of the class that it inherits from.
 ### instance
 One specific object that a class or a template makes.
 
+### specialization
+One specific instance of a template, built with one specific set of
+template arguments. `span<int, 3>` is one specialization of `span`.
+
+### sentinel
+A specific value that stands for a special meaning, instead of a
+normal value. `dynamic_extent` is a sentinel value.
+
 ### construct
 To build a new instance of a class.
 
