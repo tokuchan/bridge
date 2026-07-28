@@ -331,7 +331,7 @@ def render_symbols_block(facility):
 
 EXAMPLE_HEADING_RE = re.compile(r"^## Example\s*$", re.MULTILINE)
 CODE_FENCE_RE = re.compile(r"```cpp\n(.*?)\n```", re.DOTALL)
-INTERNAL_INCLUDE_RE = re.compile(r"^#include <(?:rivets|truss|deck)/")
+INTERNAL_INCLUDE_RE = re.compile(r"^#\s*include <(?:rivets|truss|deck)/")
 
 
 def extract_example_code(content, page_name):

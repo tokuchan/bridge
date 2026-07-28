@@ -110,6 +110,14 @@ facilities:
       - include/truss/cpp17/jthread.hpp
       - include/deck/cpp17/stop_token.hpp
       - include/deck/cpp17/jthread.hpp
+    example_headers:
+      - include/rivets/features.hpp
+      - include/rivets/detail/detector.hpp
+      - include/rivets/libstdcxx.hpp
+      - include/truss/cpp17/stop_token.hpp
+      - include/truss/cpp17/jthread.hpp
+      - include/deck/cpp17/stop_token.hpp
+      - include/deck/cpp17/jthread.hpp
 
   - name: detectors
     page: detectors.md

@@ -7,6 +7,11 @@ Versions are CalVer: `YY.MM.MICRO` (see docs/adr/0005-calver-versioning.md).
 ## [Unreleased]
 
 ### Added
+- docs/pages/jthread.md: the new facility's full reference page
+  (Synopsis/Example/Divergences/Passthrough), with a hand-written
+  cooperative-cancellation example verified to compile and run under
+  both the polyfill (`-std=c++17`) and passthrough (`-std=c++20`)
+  standards.
 - Deck's `stop_token`/`stop_source`/`jthread` alias-selection, in new
   `include/deck/cpp17/stop_token.hpp`/`jthread.hpp`: passthrough to the
   real `std::` types via the Detector-backed Feature Test override
@@ -251,6 +256,15 @@ Versions are CalVer: `YY.MM.MICRO` (see docs/adr/0005-calver-versioning.md).
 See docs/adr/0014's amendment for the full rationale behind each.
 
 ### Fixed
+- `scripts/docs-pages.py`'s `strip_internal_lines()` (the Example-
+  flattening transform, docs/adr/0016) now tolerates the project's own
+  `#    include <...>` indentation convention for `#if`-nested includes
+  -- previously matched only column-0 `#include <...>`, so an
+  inter-bridge include nested inside a preprocessor conditional (the
+  first time one appeared, in `deck/cpp17/stop_token.hpp`'s
+  `#ifndef BRIDGE_DOXYGEN` guard) silently survived flattening and
+  broke the compile-check gate with a real "no such file" error rather
+  than being stripped.
 - `Doxyfile.in`: a header `#include`ing another header that itself
   invokes `BRIDGE_RIVETS_DEFINE_DETECTOR` (e.g. the new
   `deck/cpp17/stop_token.hpp` including `rivets/libstdcxx.hpp`)
