@@ -7,6 +7,14 @@ Versions are CalVer: `YY.MM.MICRO` (see docs/adr/0005-calver-versioning.md).
 ## [Unreleased]
 
 ### Added
+- docs/adr/0018-ste100-writing-standard.md: bridge's manual (facility
+  pages plus source `@brief`/`@details` comments) now follows
+  ASD-STE100 (Simplified Technical English) -- full vocabulary
+  compliance plus a new technical-terms glossary for C++/programming
+  words the standard's own aerospace-specific dictionary doesn't
+  cover. ADRs, CONTEXT.md, and CHANGELOG.md are explicitly exempt.
+  Enforced by hand, not tooling. Migrated one facility at a time,
+  starting with `optional`.
 - docs/pages/jthread.md: the new facility's full reference page
   (Synopsis/Example/Divergences/Passthrough), with a hand-written
   cooperative-cancellation example verified to compile and run under
