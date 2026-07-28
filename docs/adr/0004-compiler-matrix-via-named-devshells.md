@@ -47,3 +47,20 @@ from a previous compiler.
 - The matrix is exactly as wide as nixpkgs' current snapshot allows; it
   will drift over time as nixpkgs drops old compiler versions and adds new
   ones, and should be re-verified (not re-assumed) when that happens.
+- **Known gap: `gcc13`'s linker fails on every test binary**, a real
+  binary-compatibility issue with sharing one `catch2_3` across the whole
+  matrix (line 19 above), not a bug in bridge's own code. `catch2_3` is a
+  single nixpkgs-prebuilt package -- the identical store path is reused by
+  every devShell, compiled once against nixpkgs' ambient default stdenv
+  (GCC 14/15-class on the pinned snapshot). That compiler's cold-path
+  splitting for exception cleanup emits calls to `__cxa_call_terminate`, a
+  libstdc++ runtime symbol -- confirmed via `nm -D` directly against each
+  devShell's own `libstdc++.so` to be present in GCC 14 and GCC 15, but
+  genuinely absent from GCC 13's. The final link of any Catch2-linked test
+  binary under `gcc13` therefore fails with "undefined reference to
+  `__cxa_call_terminate`", regardless of what the test itself does --
+  reproduced against a commit with zero jthread/threading-related changes,
+  ruling out anything project-specific. Recorded here rather than fixed:
+  the real fix (rebuilding `catch2_3` per-devShell stdenv, or dropping
+  `gcc13` from the matrix) is a real trade-off (build time vs. support
+  floor) deserving its own decision, not a silent workaround.
