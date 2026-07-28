@@ -1,10 +1,14 @@
 /// @file optional.hpp
-/// @brief Free-function monadic operations for `std::optional`, matching
-///        C++23's `and_then`/`or_else`/`transform`. See
-///        docs/adr/0001-namespace-and-export-scheme.md for the namespace
-///        scheme this follows, and docs/adr/0008-best-effort-head-
-///        standard.md for why these are free functions here (Deck owns
-///        the STL-shaped wrapper type built on top of them).
+/// @brief Truss's monadic methods for `std::optional`: `and_then`,
+///        `or_else`, and `transform`. These functions match the C++23
+///        methods with the same names.
+///
+///        These are free functions, not methods on a class. See
+///        docs/adr/0001-namespace-and-export-scheme.md for the
+///        namespace rule that this file follows. See
+///        docs/adr/0008-best-effort-head-standard.md for the reason
+///        that these are free functions here. Deck adds a class with
+///        the same methods on top of these functions.
 #pragma once
 
 #include <functional>
@@ -44,12 +48,17 @@ using is_optional = typename is_optional_impl<T>::type;
 template <class T>
 inline constexpr bool is_optional_v = is_optional<T>::value;
 
-/// @brief If `opt` has a value, invoke `f` with it and return the
-///        result (which must itself be a `std::optional`); otherwise
-///        return an empty result of that same type.
-/// @param opt The optional to inspect.
-/// @param f A callable returning a `std::optional` specialization.
-/// @return `f`'s result, or an empty instance of its optional type.
+/// @brief If `opt` holds a value, this function calls `f` with the
+///        value. If `opt` holds no value, this function does not call
+///        `f`.
+///
+///        `f` must return a `std::optional`. This function returns
+///        `f`'s result when it calls `f`. This function returns an
+///        empty `std::optional` of the same type when it does not
+///        call `f`.
+/// @param opt The optional to check.
+/// @param f A callable. `f` must return a `std::optional`.
+/// @return `f`'s result, or an empty `std::optional` of the same type.
 /// @see https://en.cppreference.com/w/cpp/utility/optional
 template <class T, class F>
 constexpr auto and_then(std::optional<T>& opt, F&& f) {
@@ -61,12 +70,17 @@ constexpr auto and_then(std::optional<T>& opt, F&& f) {
     return U{};
 }
 
-/// @brief If `opt` has a value, invoke `f` with it and return the
-///        result (which must itself be a `std::optional`); otherwise
-///        return an empty result of that same type.
-/// @param opt The optional to inspect.
-/// @param f A callable returning a `std::optional` specialization.
-/// @return `f`'s result, or an empty instance of its optional type.
+/// @brief If `opt` holds a value, this function calls `f` with the
+///        value. If `opt` holds no value, this function does not call
+///        `f`.
+///
+///        `f` must return a `std::optional`. This function returns
+///        `f`'s result when it calls `f`. This function returns an
+///        empty `std::optional` of the same type when it does not
+///        call `f`.
+/// @param opt The optional to check.
+/// @param f A callable. `f` must return a `std::optional`.
+/// @return `f`'s result, or an empty `std::optional` of the same type.
 /// @see https://en.cppreference.com/w/cpp/utility/optional
 template <class T, class F>
 constexpr auto and_then(const std::optional<T>& opt, F&& f) {
@@ -78,12 +92,17 @@ constexpr auto and_then(const std::optional<T>& opt, F&& f) {
     return U{};
 }
 
-/// @brief If `opt` has a value, invoke `f` with it and return the
-///        result (which must itself be a `std::optional`); otherwise
-///        return an empty result of that same type.
-/// @param opt The optional to inspect.
-/// @param f A callable returning a `std::optional` specialization.
-/// @return `f`'s result, or an empty instance of its optional type.
+/// @brief If `opt` holds a value, this function calls `f` with the
+///        value. If `opt` holds no value, this function does not call
+///        `f`.
+///
+///        `f` must return a `std::optional`. This function returns
+///        `f`'s result when it calls `f`. This function returns an
+///        empty `std::optional` of the same type when it does not
+///        call `f`.
+/// @param opt The optional to check.
+/// @param f A callable. `f` must return a `std::optional`.
+/// @return `f`'s result, or an empty `std::optional` of the same type.
 /// @see https://en.cppreference.com/w/cpp/utility/optional
 template <class T, class F>
 constexpr auto and_then(std::optional<T>&& opt, F&& f) {
@@ -95,12 +114,17 @@ constexpr auto and_then(std::optional<T>&& opt, F&& f) {
     return U{};
 }
 
-/// @brief If `opt` has a value, invoke `f` with it and return the
-///        result (which must itself be a `std::optional`); otherwise
-///        return an empty result of that same type.
-/// @param opt The optional to inspect.
-/// @param f A callable returning a `std::optional` specialization.
-/// @return `f`'s result, or an empty instance of its optional type.
+/// @brief If `opt` holds a value, this function calls `f` with the
+///        value. If `opt` holds no value, this function does not call
+///        `f`.
+///
+///        `f` must return a `std::optional`. This function returns
+///        `f`'s result when it calls `f`. This function returns an
+///        empty `std::optional` of the same type when it does not
+///        call `f`.
+/// @param opt The optional to check.
+/// @param f A callable. `f` must return a `std::optional`.
+/// @return `f`'s result, or an empty `std::optional` of the same type.
 /// @see https://en.cppreference.com/w/cpp/utility/optional
 template <class T, class F>
 constexpr auto and_then(const std::optional<T>&& opt, F&& f) {
@@ -112,11 +136,15 @@ constexpr auto and_then(const std::optional<T>&& opt, F&& f) {
     return U{};
 }
 
-/// @brief If `opt` has a value, return a copy of it; otherwise invoke
-///        `f` with no arguments and return its result.
-/// @param opt The optional to inspect.
-/// @param f A callable, invoked with no arguments, returning something
-///           convertible to `std::optional<T>`.
+/// @brief If `opt` holds a value, this function returns a copy of
+///        `opt`. If `opt` holds no value, this function calls `f` and
+///        returns `f`'s result.
+///
+///        `f` takes no arguments. `f`'s result must convert to
+///        `std::optional<T>`.
+/// @param opt The optional to check.
+/// @param f A callable. `f` takes no arguments. `f`'s result must
+///          convert to `std::optional<T>`.
 /// @return A copy of `opt`, or `f`'s result.
 /// @see https://en.cppreference.com/w/cpp/utility/optional
 template <class T, class F>
@@ -129,12 +157,16 @@ constexpr std::optional<T> or_else(const std::optional<T>& opt, F&& f) {
     return std::forward<F>(f)();
 }
 
-/// @brief If `opt` has a value, return it moved-from; otherwise invoke
-///        `f` with no arguments and return its result.
-/// @param opt The optional to inspect.
-/// @param f A callable, invoked with no arguments, returning something
-///           convertible to `std::optional<T>`.
-/// @return `opt`, moved, or `f`'s result.
+/// @brief If `opt` holds a value, this function moves the value out
+///        of `opt` and returns it. If `opt` holds no value, this
+///        function calls `f` and returns `f`'s result.
+///
+///        `f` takes no arguments. `f`'s result must convert to
+///        `std::optional<T>`.
+/// @param opt The optional to check.
+/// @param f A callable. `f` takes no arguments. `f`'s result must
+///          convert to `std::optional<T>`.
+/// @return `opt`'s value, moved, or `f`'s result.
 /// @see https://en.cppreference.com/w/cpp/utility/optional
 template <class T, class F>
 constexpr std::optional<T> or_else(std::optional<T>&& opt, F&& f) {
@@ -146,12 +178,15 @@ constexpr std::optional<T> or_else(std::optional<T>&& opt, F&& f) {
     return std::forward<F>(f)();
 }
 
-/// @brief If `opt` has a value, invoke `f` with it and return
-///        `std::optional<U>` containing the result; otherwise return an
-///        empty `std::optional<U>`.
-/// @param opt The optional to inspect.
-/// @param f A callable returning a non-`void` value.
-/// @return `f`'s result wrapped in `std::optional`, or an empty one.
+/// @brief If `opt` holds a value, this function calls `f` with the
+///        value and returns the result in a new `std::optional<U>`.
+///        If `opt` holds no value, this function returns an empty
+///        `std::optional<U>`.
+///
+///        `f` must not return `void`.
+/// @param opt The optional to check.
+/// @param f A callable. `f` must not return `void`.
+/// @return `f`'s result in a new `std::optional`, or an empty one.
 /// @see https://en.cppreference.com/w/cpp/utility/optional
 template <class T, class F>
 constexpr auto transform(std::optional<T>& opt, F&& f) {
@@ -163,12 +198,15 @@ constexpr auto transform(std::optional<T>& opt, F&& f) {
     return std::optional<U>{};
 }
 
-/// @brief If `opt` has a value, invoke `f` with it and return
-///        `std::optional<U>` containing the result; otherwise return an
-///        empty `std::optional<U>`.
-/// @param opt The optional to inspect.
-/// @param f A callable returning a non-`void` value.
-/// @return `f`'s result wrapped in `std::optional`, or an empty one.
+/// @brief If `opt` holds a value, this function calls `f` with the
+///        value and returns the result in a new `std::optional<U>`.
+///        If `opt` holds no value, this function returns an empty
+///        `std::optional<U>`.
+///
+///        `f` must not return `void`.
+/// @param opt The optional to check.
+/// @param f A callable. `f` must not return `void`.
+/// @return `f`'s result in a new `std::optional`, or an empty one.
 /// @see https://en.cppreference.com/w/cpp/utility/optional
 template <class T, class F>
 constexpr auto transform(const std::optional<T>& opt, F&& f) {
@@ -180,12 +218,15 @@ constexpr auto transform(const std::optional<T>& opt, F&& f) {
     return std::optional<U>{};
 }
 
-/// @brief If `opt` has a value, invoke `f` with it and return
-///        `std::optional<U>` containing the result; otherwise return an
-///        empty `std::optional<U>`.
-/// @param opt The optional to inspect.
-/// @param f A callable returning a non-`void` value.
-/// @return `f`'s result wrapped in `std::optional`, or an empty one.
+/// @brief If `opt` holds a value, this function calls `f` with the
+///        value and returns the result in a new `std::optional<U>`.
+///        If `opt` holds no value, this function returns an empty
+///        `std::optional<U>`.
+///
+///        `f` must not return `void`.
+/// @param opt The optional to check.
+/// @param f A callable. `f` must not return `void`.
+/// @return `f`'s result in a new `std::optional`, or an empty one.
 /// @see https://en.cppreference.com/w/cpp/utility/optional
 template <class T, class F>
 constexpr auto transform(std::optional<T>&& opt, F&& f) {
@@ -197,12 +238,15 @@ constexpr auto transform(std::optional<T>&& opt, F&& f) {
     return std::optional<U>{};
 }
 
-/// @brief If `opt` has a value, invoke `f` with it and return
-///        `std::optional<U>` containing the result; otherwise return an
-///        empty `std::optional<U>`.
-/// @param opt The optional to inspect.
-/// @param f A callable returning a non-`void` value.
-/// @return `f`'s result wrapped in `std::optional`, or an empty one.
+/// @brief If `opt` holds a value, this function calls `f` with the
+///        value and returns the result in a new `std::optional<U>`.
+///        If `opt` holds no value, this function returns an empty
+///        `std::optional<U>`.
+///
+///        `f` must not return `void`.
+/// @param opt The optional to check.
+/// @param f A callable. `f` must not return `void`.
+/// @return `f`'s result in a new `std::optional`, or an empty one.
 /// @see https://en.cppreference.com/w/cpp/utility/optional
 template <class T, class F>
 constexpr auto transform(const std::optional<T>&& opt, F&& f) {
@@ -214,7 +258,8 @@ constexpr auto transform(const std::optional<T>&& opt, F&& f) {
     return std::optional<U>{};
 }
 
-/// @brief Symbols promoted to `bridge::exports::truss::optional`.
+/// @brief This namespace promotes `and_then`, `or_else`, and `transform`
+///        to `bridge::exports::truss::optional`.
 namespace exports {
 using bridge::detail::truss::cpp17::optional::and_then;
 using bridge::detail::truss::cpp17::optional::or_else;
@@ -223,7 +268,9 @@ using bridge::detail::truss::cpp17::optional::transform;
 
 } // namespace bridge::detail::truss::cpp17::optional
 
-/// @brief Curated re-export surface; see docs/adr/0001-namespace-and-export-scheme.md.
+/// @brief This is the Exports namespace for `optional`. See
+///        docs/adr/0001-namespace-and-export-scheme.md for the rule
+///        behind this namespace.
 namespace bridge::exports::truss {
 inline namespace cpp17 {
 inline namespace optional {
@@ -232,7 +279,7 @@ using namespace bridge::detail::truss::cpp17::optional::exports;
 } // namespace cpp17
 } // namespace bridge::exports::truss
 
-/// @brief Truss's public API surface.
+/// @brief This is Truss's public API.
 namespace bridge::truss {
 using bridge::exports::truss::and_then;
 using bridge::exports::truss::or_else;

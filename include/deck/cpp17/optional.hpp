@@ -1,13 +1,17 @@
 /// @file optional.hpp
-/// @brief The STL-shaped `optional<T>` Deck owns: a passthrough alias to
-///        `std::optional<T>` when the detected ecosystem already has
-///        monadic support, or a wrapper built on Truss's free functions
-///        when it doesn't — selected so there is no detectable
-///        difference between the two from the caller's side. See
+/// @brief Deck's `optional<T>`. This type acts the same way in every
+///        ecosystem.
+///
+///        If the ecosystem's `std::optional` already has monadic
+///        methods, `optional<T>` is a passthrough alias to
+///        `std::optional<T>`. If the ecosystem's `std::optional` does
+///        not have monadic methods yet, `optional<T>` is a polyfill
+///        class that wraps Truss's free functions. See
 ///        docs/adr/0001-namespace-and-export-scheme.md for the
-///        namespace scheme and docs/adr/0008-best-effort-head-standard.md
-///        for why this selection exists per-ecosystem rather than on a
-///        single global language-standard threshold.
+///        namespace rule. See docs/adr/0008-best-effort-head-
+///        standard.md for the reason Deck makes this choice for each
+///        ecosystem, not from one language-standard number for every
+///        ecosystem.
 #pragma once
 
 #include <optional>
@@ -20,17 +24,22 @@ namespace bridge::detail::deck::cpp17::optional {
 
 #if BRIDGE_RIVETS_FEATURES_LIB_OPTIONAL >= 202110L
 
-/// @brief Passthrough: this ecosystem's `std::optional` already has
-///        monadic methods, so bridge adds nothing.
+/// @brief This is Deck's passthrough choice. This ecosystem's
+///        `std::optional` already has monadic methods. Bridge adds
+///        nothing here.
 template <class T>
 using optional = std::optional<T>;
 
 #else
 
-/// @brief `std::optional<T>` plus monadic methods, for ecosystems whose
-///        `std::optional` doesn't have them yet. Built on Truss's free
-///        functions (include/truss/cpp17/optional.hpp); every other
-///        member comes from `std::optional<T>` via public inheritance.
+/// @brief This class is a polyfill. It adds monadic methods to
+///        `std::optional<T>`, for an ecosystem whose `std::optional`
+///        does not have them yet.
+///
+///        This class inherits from `std::optional<T>`. This class
+///        gets the monadic methods from Truss's free functions
+///        (include/truss/cpp17/optional.hpp). This class gets every
+///        other method from `std::optional<T>` through inheritance.
 /// @see https://en.cppreference.com/w/cpp/utility/optional
 template <class T>
 class optional : public std::optional<T> {
@@ -45,20 +54,23 @@ public:
     // std::optional<T> value -- needed below for or_else, whose
     // underlying bridge::truss::or_else necessarily returns the base
     // type. Verified empirically that omitting these fails to compile.
-    /// @brief Constructs from a plain `std::optional<T>`, copying it.
+    /// @brief This constructor builds a new `optional<T>` from a plain
+    ///        `std::optional<T>`. It copies the value.
     /// @param other The value to copy.
     constexpr optional(const std::optional<T>& other) : std::optional<T>(other) {}
-    /// @brief Constructs from a plain `std::optional<T>`, moving it.
-    /// @param other The value to move from.
+    /// @brief This constructor builds a new `optional<T>` from a plain
+    ///        `std::optional<T>`. It moves the value.
+    /// @param other The value to move.
     constexpr optional(std::optional<T>&& other) : std::optional<T>(std::move(other)) {}
 
-    /// @brief See bridge::truss::and_then. Wraps the result back into
-    ///        `optional` (even when `f` returned a plain `std::optional`)
-    ///        so chained calls (`.and_then(...).and_then(...)`) keep
-    ///        working.
-    /// @param f A callable returning a `std::optional` specialization
-    ///           (Truss's or Deck's own).
-    /// @return `f`'s result, or an empty instance of its optional type.
+    /// @brief This method does the same work as `bridge::truss::and_then`.
+    ///
+    ///        This method puts the result back into `optional`, even
+    ///        when `f` returns a plain `std::optional`. This lets you
+    ///        chain `and_then` calls together.
+    /// @param f A callable. `f` must return a `std::optional` or an
+    ///          `optional`.
+    /// @return `f`'s result in `optional`, or an empty `optional`.
     template <class F>
     constexpr auto and_then(F&& f) & {
         using Raw = std::decay_t<std::invoke_result_t<F, T&>>;
@@ -87,29 +99,29 @@ public:
             bridge::truss::and_then(static_cast<const std::optional<T>&&>(*this), std::forward<F>(f)));
     }
 
-    /// @brief See bridge::truss::or_else.
-    /// @param f A callable, invoked with no arguments, returning
-    ///           something convertible to `std::optional<T>`.
+    /// @brief This method does the same work as `bridge::truss::or_else`.
+    /// @param f A callable. `f` takes no arguments. `f`'s result must
+    ///          convert to `std::optional<T>`.
     /// @return A copy of `*this`, or `f`'s result.
     template <class F>
     constexpr optional or_else(F&& f) const& {
         return optional(bridge::truss::or_else(static_cast<const std::optional<T>&>(*this), std::forward<F>(f)));
     }
-    /// @brief See bridge::truss::or_else.
-    /// @param f A callable, invoked with no arguments, returning
-    ///           something convertible to `std::optional<T>`.
+    /// @brief This method does the same work as `bridge::truss::or_else`.
+    /// @param f A callable. `f` takes no arguments. `f`'s result must
+    ///          convert to `std::optional<T>`.
     /// @return `*this`, moved, or `f`'s result.
     template <class F>
     constexpr optional or_else(F&& f) && {
         return optional(bridge::truss::or_else(static_cast<std::optional<T>&&>(*this), std::forward<F>(f)));
     }
 
-    /// @brief See bridge::truss::transform. Wraps the result in
-    ///        `optional` (Truss's free function always returns a plain
-    ///        `std::optional`, since it has no notion of Deck's wrapper)
-    ///        so chained calls keep working.
-    /// @param f A callable returning a non-`void` value.
-    /// @return `f`'s result wrapped in `optional`, or an empty one.
+    /// @brief This method does the same work as `bridge::truss::transform`.
+    ///
+    ///        This method puts the result back into `optional`. This lets
+    ///        you chain `transform` calls together.
+    /// @param f A callable. `f` must not return `void`.
+    /// @return `f`'s result in `optional`, or an empty `optional`.
     template <class F>
     constexpr auto transform(F&& f) & {
         using U = std::decay_t<std::invoke_result_t<F, T&>>;
@@ -224,40 +236,41 @@ BRIDGE_DECK_OPTIONAL_DEFINE_COMPARISON(>=)
 
 #endif // BRIDGE_RIVETS_FEATURES_LIB_OPTIONAL
 
-/// @brief Symbols promoted to `bridge::exports::deck::optional`.
+/// @brief This namespace promotes `optional` to
+///        `bridge::exports::deck::optional`.
 namespace exports {
 using bridge::detail::deck::cpp17::optional::optional;
 } // namespace exports
 
 } // namespace bridge::detail::deck::cpp17::optional
 
-/// @brief Curated re-export surface; see docs/adr/0001-namespace-and-export-scheme.md.
+/// @brief This is the Exports namespace for `optional`. See
+///        docs/adr/0001-namespace-and-export-scheme.md for the rule
+///        behind this namespace.
 ///
-/// No `inline namespace optional { ... }` wrapper here (unlike
-/// truss/cpp17/optional.hpp's exports, where the leaf segment name
-/// "optional" never collides with any symbol it exports): this header's
-/// primary export is *also* named `optional`, and nesting it inside an
-/// inline namespace of the identical name makes that inline namespace's
-/// own qualified name reachable at this same scope, colliding with the
-/// promoted type. Confirmed by hitting the actual compile error before
-/// working around it, not assumed. Promoting straight from the `cpp17`
-/// inline namespace avoids the collision without losing the collapse to
-/// `bridge::exports::deck::optional` cpp17-inline gives every other
-/// header.
+///        This namespace has no `inline namespace optional { ... }`
+///        wrapper. Other headers add this wrapper around their Exports
+///        namespace. This header cannot do the same. The wrapper's
+///        name would be `optional`. The type this header promotes is
+///        also named `optional`. The two names would collide. This
+///        namespace promotes `optional` straight from the `cpp17`
+///        inline namespace instead, and avoids the collision. The
+///        result is still `bridge::exports::deck::optional`, the same
+///        result every other header's wrapper gives.
 namespace bridge::exports::deck {
 inline namespace cpp17 {
 using namespace bridge::detail::deck::cpp17::optional::exports;
 } // namespace cpp17
 } // namespace bridge::exports::deck
 
-/// @brief Deck's public API surface.
+/// @brief This is Deck's public API.
 namespace bridge::deck {
 using bridge::exports::deck::optional;
 } // namespace bridge::deck
 
-/// @brief Bridge's public API surface — optional is flattened all the
-///        way to bridge::optional, matching docs/adr/0001's own
-///        worked example.
+/// @brief This is bridge's public API. `optional` reaches all the way
+///        to `bridge::optional` here. ADR-0001 shows this same
+///        example.
 namespace bridge {
 using bridge::deck::optional;
 } // namespace bridge

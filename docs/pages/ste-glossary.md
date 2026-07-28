@@ -30,6 +30,9 @@ data. It can give back a result.
 ### method
 A function that belongs to a class.
 
+### free function
+A function that does not belong to a class.
+
 ### template
 A pattern for a class or a function. You give the pattern a type. The
 compiler makes the real class or function from the pattern and the
@@ -45,8 +48,8 @@ a parameter.
 ### callable
 A function, or an object that you can call like a function.
 
-### invoke
-To call a function or a callable.
+### call
+To make a function or a callable run.
 
 ### compile
 To turn source code into a program that a computer can run.
@@ -65,9 +68,29 @@ actions and the data of the class that it inherits from.
 ### instance
 One specific object that a class or a template makes.
 
+### construct
+To build a new instance of a class.
+
 ### chain
 To call one method, then call another method on the result, in one
 statement.
+
+### value
+A piece of data of a specific type. An `int` value and a `std::string`
+value are examples.
+
+### empty
+Holds no value. An empty `optional` holds no value.
+
+### result
+The value that a function gives back when it finishes.
+
+### return
+To give back a value at the end of a function. The function's caller
+gets this value.
+
+### check
+To look at something, to find one fact about it.
 
 ## Bridge-specific words
 

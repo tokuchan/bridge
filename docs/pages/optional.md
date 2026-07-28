@@ -11,14 +11,20 @@ See [`<optional>`](https://en.cppreference.com/w/cpp/utility/optional) on cppref
 
 ## Synopsis
 
-`bridge::optional<T>` is `std::optional<T>` plus its C++23 monadic
-methods (`and_then`, `or_else`, `transform`), available regardless of
-which standard is actually active. `std::optional<T>` itself has
-existed since C++17, so Truss builds only the three monadic methods as
-free functions on a real `std::optional<T>`; Deck wraps them into a
-thin class publicly inheriting `std::optional<T>` when the ecosystem's
-own `std::optional` doesn't have them yet, or passes through directly
-when it does.
+`bridge::optional<T>` is `std::optional<T>` plus three monadic
+methods: `and_then`, `or_else`, and `transform`. C++23 adds these
+three methods to `std::optional<T>`. `bridge::optional<T>` gives you
+these same three methods on every C++ standard bridge supports.
+
+`std::optional<T>` itself is part of C++17. Truss builds only the
+three monadic methods, as free functions on a real `std::optional<T>`.
+Deck then makes a choice for each ecosystem. When the ecosystem's own
+`std::optional` already has the three methods, Deck's choice is
+passthrough: `bridge::optional<T>` is `std::optional<T>` directly.
+When the ecosystem's own `std::optional` does not have the three
+methods yet, Deck's choice is the polyfill: `bridge::optional<T>` is
+a class that inherits from `std::optional<T>` and adds the three
+methods.
 
 ## Example
 
@@ -40,30 +46,36 @@ int main() {
 
 ## Divergences
 
-None. `bridge::optional<T>` matches `std::optional<T>` exactly under
-passthrough, and the polyfill path adds only the three monadic methods
-on top of public inheritance from the real `std::optional<T>` --
-everything else (comparisons, accessors, `emplace`, `reset`, ...) is
-`std::optional<T>`'s own behavior, unmodified.
+None. Under passthrough, `bridge::optional<T>` is `std::optional<T>`,
+with no change at all. Under the polyfill, `bridge::optional<T>` adds
+only the three monadic methods. `std::optional<T>` itself supplies
+every other method, unchanged. This includes `emplace`, `reset`, and
+the comparison operators.
 
 ## Passthrough
 
-Deck selects between passthrough and polyfill on
-`BRIDGE_RIVETS_FEATURES_LIB_OPTIONAL >= 202110L` (the Feature Test
-value for `std::optional`'s monadic methods, [P0798](https://en.cppreference.com/w/cpp/feature_test)).
+Deck checks one Feature Test:
+`BRIDGE_RIVETS_FEATURES_LIB_OPTIONAL >= 202110L`. This is the Feature
+Test value for `std::optional`'s monadic methods
+([P0798](https://en.cppreference.com/w/cpp/feature_test)). Deck
+chooses passthrough when this check passes. Deck chooses the polyfill
+when this check fails.
+
 See [ADR-0008](https://github.com/tokuchan/bridge/blob/master/docs/adr/0008-best-effort-head-standard.md)
-for the "behaviorally indistinguishable" bar this selection has to
-clear, and CONTEXT.md for how this shape (free functions added onto an
-existing STL type) differs from `expected`'s (a full class Truss owns
-outright) and `format`'s (a complete function-based facility). (ADR and
-CONTEXT.md links here point at the repository on GitHub, not this
-generated site -- they aren't part of Doxygen's input.)
+for the bar this choice must clear. See CONTEXT.md for how this shape
+compares with `expected`'s shape and `format`'s shape. `expected` is a
+full class that Truss owns outright. `format` is a complete
+function-based facility. `optional` only adds free functions onto an
+existing STL type.
+
+The ADR and CONTEXT.md links above point at the repository on GitHub,
+not this generated site. Doxygen does not read them from here.
 
 <!-- BRIDGE-DOCS:BEGIN symbols -->
 | Symbol | Kind | Brief | cppreference |
 |---|---|---|---|
-| `and_then` | function | If `opt` has a value, invoke `f` with it and return the result (which must itself be a `std::optional`); otherwise return an empty result of that same type. | [`<optional>::and_then`](https://en.cppreference.com/w/cpp/utility/optional) |
-| `optional` | class | `std::optional<T>` plus monadic methods, for ecosystems whose `std::optional` doesn't have them yet. Built on Truss's free functions (include/truss/cpp17/optional.hpp); every other member comes from `std::optional<T>` via public inheritance. | [`<optional>::optional`](https://en.cppreference.com/w/cpp/utility/optional) |
-| `or_else` | function | If `opt` has a value, return a copy of it; otherwise invoke `f` with no arguments and return its result. | [`<optional>::or_else`](https://en.cppreference.com/w/cpp/utility/optional) |
-| `transform` | function | If `opt` has a value, invoke `f` with it and return `std::optional<U>` containing the result; otherwise return an empty `std::optional<U>`. | [`<optional>::transform`](https://en.cppreference.com/w/cpp/utility/optional) |
+| `and_then` | function | If `opt` holds a value, this function calls `f` with the value. If `opt` holds no value, this function does not call `f`. | [`<optional>::and_then`](https://en.cppreference.com/w/cpp/utility/optional) |
+| `optional` | class | This class is a polyfill. It adds monadic methods to `std::optional<T>`, for an ecosystem whose `std::optional` does not have them yet. | [`<optional>::optional`](https://en.cppreference.com/w/cpp/utility/optional) |
+| `or_else` | function | If `opt` holds a value, this function returns a copy of `opt`. If `opt` holds no value, this function calls `f` and returns `f`'s result. | [`<optional>::or_else`](https://en.cppreference.com/w/cpp/utility/optional) |
+| `transform` | function | If `opt` holds a value, this function calls `f` with the value and returns the result in a new `std::optional<U>`. If `opt` holds no value, this function returns an empty `std::optional<U>`. | [`<optional>::transform`](https://en.cppreference.com/w/cpp/utility/optional) |
 <!-- BRIDGE-DOCS:END -->
