@@ -11,13 +11,15 @@ See [`<expected>`](https://en.cppreference.com/w/cpp/utility/expected) on cppref
 
 ## Synopsis
 
-`bridge::expected<T,E>` holds either a value of type `T` or an error of
-type `E`, matching C++23's `std::expected<T,E>`. `std::expected` doesn't
-exist before C++23 and has no pre-existing STL type to attach free
-functions to (unlike `optional`), so Truss owns a complete,
-from-scratch class -- including its companions `unexpected<E>`,
-`unexpect_t`/`unexpect`, and `bad_expected_access<E>` -- and Deck
-selects between it and the real `std::expected<T,E>`.
+`bridge::expected<T,E>` holds either a value of type `T`, or an error
+of type `E`. It matches C++23's `std::expected<T,E>`.
+
+`std::expected` does not exist before C++23. It also has no STL type
+to attach free functions to, unlike `optional`. So Truss owns a
+complete class, built from scratch. This class includes its
+companions: `unexpected<E>`, `unexpect_t`, `unexpect`, and
+`bad_expected_access<E>`. Deck selects between this class and the
+real `std::expected<T,E>`.
 
 ## Example
 
@@ -46,55 +48,62 @@ int main() {
 }
 ```
 
-Both return statements construct `expected` explicitly rather than
-relying on an implicit conversion from `unexpected<E>` or a raw value --
-see Divergences below for why that matters here specifically.
+Both return statements construct `expected` explicitly. They do not
+rely on an implicit conversion from `unexpected<E>` or a raw value.
+See Divergences below for why that matters here.
 
 ## Divergences
 
 - **Converting constructors are unconditionally `explicit`.** Real
-  `std::expected` allows implicit conversion from `unexpected<G>`, a raw
-  value, or another `expected<U,G>` when convertibility permits; C++17
-  has no `explicit(bool)` to make that conditional, so the polyfill
-  requires explicit construction everywhere instead.
-- **The `expected<U,G>` converting constructor omits `std::expected`'s
-  extra defensive SFINAE guards** (converts-from-any-cvref and
-  friends), matching only the core `is_constructible_v` constraint --
-  an edge-case ambiguity real `std::expected` guards against that the
-  polyfill doesn't.
+  `std::expected` allows an implicit conversion, from `unexpected<G>`,
+  from a raw value, or from another `expected<U,G>`, when
+  convertibility permits. C++17 has no `explicit(bool)` to make that
+  conditional. So the polyfill requires explicit construction
+  everywhere instead.
+- **The `expected<U,G>` converting constructor omits
+  `std::expected`'s extra defensive SFINAE guards.** These guards
+  include the converts-from-any-cvref check and similar checks. This
+  constructor matches only the core `is_constructible_v` constraint.
+  Real `std::expected` guards against an edge-case ambiguity here.
+  The polyfill does not guard against it.
 - **No conditional triviality.** `std::expected<T,E>` is trivially
-  copyable/destructible when `T`/`E` are; replicating that needs the
-  same base-class-specialization machinery real STL implementations
-  use, out of scope for a header-only backport.
+  copyable and trivially destructible, when `T` and `E` are.
+  Reproducing this needs the same base-class-specialization machinery
+  real STL implementations use. This machinery is out of scope for a
+  header-only backport.
 - **Simplified exception safety.** Assignment uses straightforward
-  destroy-then-construct, not the standard's full two-stage
-  "reinit-expected" technique for the narrow case where a throwing move
-  constructor could otherwise leave the object valueless after a failed
-  reassignment.
+  destroy-then-construct. The standard uses a full two-stage
+  technique instead, called "reinit-expected." The standard's
+  technique covers one narrow case: a throwing move constructor could
+  otherwise leave the object valueless, after a failed reassignment.
 
-The first two are disclosed via a compiler-visible
-`BRIDGE_RIVETS_DIVERGENCE_NOTE` wherever the polyfill is actually
-selected ([ADR-0011](https://github.com/tokuchan/bridge/blob/master/docs/adr/0011-warn-on-surprising-facility-divergences.md));
-all four are covered in full in
-[ADR-0010](https://github.com/tokuchan/bridge/blob/master/docs/adr/0010-expected-truss-owns-the-class.md).
+This page discloses the first two divergences with a
+compiler-visible `BRIDGE_RIVETS_DIVERGENCE_NOTE`, wherever the
+polyfill is actually selected
+([ADR-0011](https://github.com/tokuchan/bridge/blob/master/docs/adr/0011-warn-on-surprising-facility-divergences.md)).
+[ADR-0010](https://github.com/tokuchan/bridge/blob/master/docs/adr/0010-expected-truss-owns-the-class.md)
+covers all four divergences in full.
 
 ## Passthrough
 
-Deck selects between passthrough and polyfill on
-`BRIDGE_RIVETS_FEATURES_LIB_EXPECTED >= 202211L` (the Feature Test
-value for `std::expected`, [P0323](https://en.cppreference.com/w/cpp/feature_test)):
-`std::expected<T,E>` once confirmed, `bridge::truss::expected<T,E>`
-otherwise -- Truss's own class never itself passes through, even under
-C++23. There's nothing left for Deck to *wrap* here, unlike `optional`:
-Deck only builds a wrapper when Truss's contribution is free functions
-on an existing STL type, not a full class.
+Deck checks one Feature Test:
+`BRIDGE_RIVETS_FEATURES_LIB_EXPECTED >= 202211L`. This is the Feature
+Test value for `std::expected`
+([P0323](https://en.cppreference.com/w/cpp/feature_test)). Once this
+check confirms support, Deck aliases to `std::expected<T,E>`.
+Otherwise, Deck aliases to `bridge::truss::expected<T,E>`. Truss's own
+class never itself passes through, even under C++23.
+
+Deck has nothing left to wrap here, unlike `optional`. Deck only
+builds a wrapper when Truss's contribution is free functions on an
+existing STL type, not a full class.
 
 <!-- BRIDGE-DOCS:BEGIN symbols -->
 | Symbol | Kind | Brief | cppreference |
 |---|---|---|---|
-| `bad_expected_access` | class | Thrown by `expected<T,E>::value()` when accessed without a value; carries a copy of the error that caused the access to fail. Matches `std::bad_expected_access<E>`. | [`<expected>::bad_expected_access`](https://en.cppreference.com/w/cpp/utility/expected) |
-| `expected` | class | Truss's polyfilled `expected<T,E>`, matching C++23's `std::expected<T,E>` for standards that predate it. | [`<expected>::expected`](https://en.cppreference.com/w/cpp/utility/expected) |
-| `unexpect` | variable | The canonical `unexpect_t` instance, passed to select `expected`'s in-place-error constructors. Matches `std::unexpect`. | [`<expected>::unexpect`](https://en.cppreference.com/w/cpp/utility/expected) |
-| `unexpect_t` | struct | Tag type selecting `expected`'s error-constructing constructor overloads, mirroring `std::in_place_t`. Matches `std::unexpect_t`. | [`<expected>::unexpect_t`](https://en.cppreference.com/w/cpp/utility/expected) |
-| `unexpected` | class | Wraps an error value of type `E`, matching `std::unexpected`. Constructed explicitly and passed to `expected`'s converting constructors, or returned directly from a function reporting failure. | [`<expected>::unexpected`](https://en.cppreference.com/w/cpp/utility/expected) |
+| `bad_expected_access` | class | `expected<T,E>::value()` throws this class, when you access it without a value. This class carries a copy of the error that caused the access to fail. This class matches `std::bad_expected_access<E>`. | [`<expected>::bad_expected_access`](https://en.cppreference.com/w/cpp/utility/expected) |
+| `expected` | class | This class is Truss's polyfilled `expected<T,E>`. This class matches C++23's `std::expected<T,E>`, for standards that predate it. | [`<expected>::expected`](https://en.cppreference.com/w/cpp/utility/expected) |
+| `unexpect` | variable | This is the canonical `unexpect_t` instance. You pass this instance to select `expected`'s in-place-error constructors. This instance matches `std::unexpect`. | [`<expected>::unexpect`](https://en.cppreference.com/w/cpp/utility/expected) |
+| `unexpect_t` | struct | This tag type selects `expected`'s error-constructing constructor overloads. This tag type mirrors `std::in_place_t`. This tag type matches `std::unexpect_t`. | [`<expected>::unexpect_t`](https://en.cppreference.com/w/cpp/utility/expected) |
+| `unexpected` | class | This class wraps an error value of type `E`. This class matches `std::unexpected`. | [`<expected>::unexpected`](https://en.cppreference.com/w/cpp/utility/expected) |
 <!-- BRIDGE-DOCS:END -->
