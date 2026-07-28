@@ -125,6 +125,15 @@ supply the function.
 One specific combination of a compiler and a standard library.
 Different ecosystems can supply different C++ functions.
 
+### comparator
+A function or a macro that checks one version number against
+another, and gives back true or false. `gt`, `ge`, `lt`, `le`, and
+`eq` are bridge's five comparators.
+
+### gate
+To let code run only when a check passes. A Feature Test can gate a
+passthrough choice.
+
 ### monadic method
 A method on `optional` (or a similar type) that lets you chain
 operations. Each method checks if the type holds a value. The method
