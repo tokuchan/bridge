@@ -23,6 +23,11 @@ CONTEXT.md meaning here too.
 ### class
 A type that groups data and the actions on that data.
 
+### struct
+A class where every member is public by default. This page uses
+"class" and "struct" with the same general meaning: a type that
+groups data and the actions on that data.
+
 ### function
 A named piece of code that does one action. You can give it input
 data. It can give back a result.
