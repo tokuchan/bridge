@@ -138,6 +138,11 @@ A function or a macro that checks one version number against
 another, and gives back true or false. `gt`, `ge`, `lt`, `le`, and
 `eq` are bridge's five comparators.
 
+### ordinal
+A short number people actually say for a C++ standard, like `20` for
+C++20. This differs from the standard's own `__cplusplus`-style year
+code.
+
 ### gate
 To let code run only when a check passes. A Feature Test can gate a
 passthrough choice.

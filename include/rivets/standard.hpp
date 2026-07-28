@@ -1,13 +1,14 @@
 /// @file standard.hpp
-/// @brief Language standard detection.
+/// @brief This file holds language standard detection.
 #pragma once
 
 /// @def BRIDGE_CPLUSPLUS
-/// @brief The active C++ standard, as a `__cplusplus`-style long integer.
+/// @brief This is the active C++ standard, as a `__cplusplus`-style
+///        long integer.
 ///
 /// MSVC only reports the correct `__cplusplus` value when built with
-/// `/Zc:__cplusplus`; `_MSVC_LANG` always reflects the real target standard,
-/// so it is preferred when available.
+/// `/Zc:__cplusplus`. `_MSVC_LANG` always reflects the real target
+/// standard. So this file prefers `_MSVC_LANG` when it is available.
 #if defined(_MSC_VER) && defined(_MSVC_LANG)
 #    define BRIDGE_CPLUSPLUS _MSVC_LANG
 #else
@@ -15,15 +16,15 @@
 #endif
 
 /// @def BRIDGE_CPP17
-/// @brief The `__cplusplus` value for C++17.
+/// @brief This is the `__cplusplus` value for C++17.
 #define BRIDGE_CPP17 201703L
 
 /// @def BRIDGE_CPP20
-/// @brief The `__cplusplus` value for C++20.
+/// @brief This is the `__cplusplus` value for C++20.
 #define BRIDGE_CPP20 202002L
 
 /// @def BRIDGE_CPP23
-/// @brief The `__cplusplus` value for C++23.
+/// @brief This is the `__cplusplus` value for C++23.
 #define BRIDGE_CPP23 202302L
 
 #if BRIDGE_CPLUSPLUS < BRIDGE_CPP17
@@ -31,20 +32,22 @@
 #endif
 
 /// @def BRIDGE_HAS_CPP20
-/// @brief Non-zero when compiling as C++20 or later.
+/// @brief This is non-zero when compiling as C++20 or later.
 #define BRIDGE_HAS_CPP20 (BRIDGE_CPLUSPLUS >= BRIDGE_CPP20)
 
 /// @def BRIDGE_HAS_CPP23
-/// @brief Non-zero when compiling as C++23 or later.
+/// @brief This is non-zero when compiling as C++23 or later.
 #define BRIDGE_HAS_CPP23 (BRIDGE_CPLUSPLUS >= BRIDGE_CPP23)
 
 namespace bridge::rivets::standard {
 
-/// @brief Maps a short standard ordinal (`17`, `20`, `23`) to its
-///        `__cplusplus`-style year code (@ref BRIDGE_CPP17 and friends).
-///        An ordinal bridge doesn't yet know maps to `-1`, which no real
-///        `__cplusplus` value can ever equal or exceed.
-/// @param ordinal The short form people actually say, e.g. `20` for C++20.
+/// @brief This function maps a short standard ordinal (`17`, `20`,
+///        `23`) to its `__cplusplus`-style year code (@ref
+///        BRIDGE_CPP17 and friends). An ordinal bridge does not yet
+///        know maps to `-1`. No real `__cplusplus` value can ever
+///        equal or exceed `-1`.
+/// @param ordinal The short form people actually say, for example
+///        `20` for C++20.
 /// @return The matching `__cplusplus`-style year code, or `-1` if `ordinal`
 ///         isn't one bridge knows.
 constexpr long year_code_of(int ordinal) {
@@ -56,24 +59,34 @@ constexpr long year_code_of(int ordinal) {
     }
 }
 
-/// @brief Is the active C++ standard greater than `ordinal`?
-/// @param ordinal The short form people actually say, e.g. `20` for C++20.
+/// @brief This checks whether the active C++ standard is greater
+///        than `ordinal`.
+/// @param ordinal The short form people actually say, for example
+///        `20` for C++20.
 /// @return Whether the active `__cplusplus` value is greater than `ordinal`'s.
 constexpr bool gt(int ordinal) { return BRIDGE_CPLUSPLUS > year_code_of(ordinal); }
-/// @brief Is the active C++ standard greater than or equal to `ordinal`?
-/// @param ordinal The short form people actually say, e.g. `20` for C++20.
+/// @brief This checks whether the active C++ standard is greater
+///        than or equal to `ordinal`.
+/// @param ordinal The short form people actually say, for example
+///        `20` for C++20.
 /// @return Whether the active `__cplusplus` value is at least `ordinal`'s.
 constexpr bool ge(int ordinal) { return BRIDGE_CPLUSPLUS >= year_code_of(ordinal); }
-/// @brief Is the active C++ standard less than `ordinal`?
-/// @param ordinal The short form people actually say, e.g. `20` for C++20.
+/// @brief This checks whether the active C++ standard is less than
+///        `ordinal`.
+/// @param ordinal The short form people actually say, for example
+///        `20` for C++20.
 /// @return Whether the active `__cplusplus` value is less than `ordinal`'s.
 constexpr bool lt(int ordinal) { return BRIDGE_CPLUSPLUS < year_code_of(ordinal); }
-/// @brief Is the active C++ standard less than or equal to `ordinal`?
-/// @param ordinal The short form people actually say, e.g. `20` for C++20.
+/// @brief This checks whether the active C++ standard is less than
+///        or equal to `ordinal`.
+/// @param ordinal The short form people actually say, for example
+///        `20` for C++20.
 /// @return Whether the active `__cplusplus` value is at most `ordinal`'s.
 constexpr bool le(int ordinal) { return BRIDGE_CPLUSPLUS <= year_code_of(ordinal); }
-/// @brief Is the active C++ standard exactly `ordinal`?
-/// @param ordinal The short form people actually say, e.g. `20` for C++20.
+/// @brief This checks whether the active C++ standard is exactly
+///        `ordinal`.
+/// @param ordinal The short form people actually say, for example
+///        `20` for C++20.
 /// @return Whether the active `__cplusplus` value equals `ordinal`'s.
 constexpr bool eq(int ordinal) { return BRIDGE_CPLUSPLUS == year_code_of(ordinal); }
 

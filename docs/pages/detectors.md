@@ -17,17 +17,20 @@
 
 ## Synopsis
 
-A Detector answers "what version range is *this specific* compiler or
-library at," as both a `constexpr bool` and an `#if`-usable macro.
-**Standard** (`standard.hpp`), **GCC**, **Clang**, and **libstdc++**
-are implemented today, each with the same shape: five generic
-comparators (`gt`/`ge`/`lt`/`le`/`eq`) as Layer 1, plus however many
-specific Named Detectors (`bridge::rivets::gcc::ge_13()`,
-`BRIDGE_RIVETS_GCC_GE(13)`) as Layer 2 that this codebase or a
-consumer actually needs -- generated via
-`BRIDGE_RIVETS_DEFINE_DETECTOR`, never hand-written one at a time. See
-\ref page_rivets for the shared mental model (the "sparse Cartesian
-product" this two-layer split serves).
+A Detector answers one question: what version range is this
+specific compiler or library at? A Detector gives this answer as
+both a `constexpr bool` and an `#if`-usable macro.
+
+Standard (`standard.hpp`), GCC, Clang, and libstdc++ are implemented
+today. Each has the same shape. Layer 1 is five generic comparators:
+`gt`, `ge`, `lt`, `le`, and `eq`. Layer 2 is however many specific
+Named Detectors this codebase or a consumer actually needs, for
+example `bridge::rivets::gcc::ge_13()` and `BRIDGE_RIVETS_GCC_GE(13)`.
+`BRIDGE_RIVETS_DEFINE_DETECTOR` generates every Layer 2 Named
+Detector. Nobody hand-writes a Named Detector one at a time.
+
+See \ref page_rivets for the shared mental model: the "sparse
+Cartesian product" this two-layer split serves.
 
 ## Example
 
@@ -56,76 +59,77 @@ int main() {
 
 ## Notes
 
-- **MSVC**, the **MSVC STL**, **libc++**, and **Boost** are registered
-  facility headers but deliberately not yet implemented -- each file
-  documents its own intended shape (and, for Boost specifically, why
-  its Layer 1 needs a two-component `ge(major, minor)` form the other
-  Entities don't) so the design is visible before the real work
-  happens; that's why they don't appear in the symbol table below yet.
-- **libstdc++** was implemented ahead of its own turn in this list,
-  needed as a Detector-based override for a real libstdc++ Feature
-  Test gap (`__cpp_lib_stop_token` is never defined, even though
-  `stop_token` itself works) -- see docs/adr/0017.
-- Detectors live directly in their own namespace with no
-  Detail/Exports tiering (unlike Truss/Deck's facilities): there's
-  never more than one right answer to "is GCC at least version 13," so
-  there's nothing for a passthrough-or-polyfill selection to choose
-  between.
+- MSVC, the MSVC STL, libc++, and Boost are registered facility
+  headers. This facility deliberately has not implemented them yet.
+  Each file documents its own intended shape. For Boost specifically,
+  its file also documents why Boost's Layer 1 needs a two-component
+  `ge(major, minor)` form the other Entities don't. This design is
+  visible before the real work happens. This is why these four
+  Entities do not appear in the symbol table below yet.
+- This facility implemented libstdc++ ahead of its own turn in this
+  list. libstdc++ needed a Detector-based override, for a real
+  libstdc++ Feature Test gap: `__cpp_lib_stop_token` is never
+  defined, even though `stop_token` itself works. See docs/adr/0017.
+- Detectors live directly in their own namespace, with no
+  Detail/Exports tiering, unlike Truss's and Deck's facilities.
+  There is never more than one right answer to "is GCC at least
+  version 13?" So there is nothing for a passthrough-or-polyfill
+  choice to choose between.
 - See [ADR-0006](https://github.com/tokuchan/bridge/blob/master/docs/adr/0006-detector-naming-calculus.md)
   for the naming calculus behind the Layer 1/Layer 2 split.
 
 <!-- BRIDGE-DOCS:BEGIN symbols -->
 | Symbol | Kind | Brief |
 |---|---|---|
-| `BRIDGE_CPLUSPLUS` | define | The active C++ standard, as a `__cplusplus`-style long integer. |
-| `BRIDGE_CPP17` | define | The `__cplusplus` value for C++17. |
-| `BRIDGE_CPP20` | define | The `__cplusplus` value for C++20. |
-| `BRIDGE_CPP23` | define | The `__cplusplus` value for C++23. |
-| `BRIDGE_HAS_CPP20` | define | Non-zero when compiling as C++20 or later. |
-| `BRIDGE_HAS_CPP23` | define | Non-zero when compiling as C++23 or later. |
-| `BRIDGE_RIVETS_CLANG_EQ` | define | `#if`-usable form of bridge::rivets::clang::eq. |
-| `BRIDGE_RIVETS_CLANG_GE` | define | `#if`-usable form of bridge::rivets::clang::ge. |
-| `BRIDGE_RIVETS_CLANG_GT` | define | `#if`-usable form of bridge::rivets::clang::gt. |
-| `BRIDGE_RIVETS_CLANG_LE` | define | `#if`-usable form of bridge::rivets::clang::le. |
-| `BRIDGE_RIVETS_CLANG_LT` | define | `#if`-usable form of bridge::rivets::clang::lt. |
-| `BRIDGE_RIVETS_CLANG_VERSION` | define | Clang's major version, or `0` when not compiling with Clang. |
-| `BRIDGE_RIVETS_DEFINE_DETECTOR` | define | Generates a Named Detector: `bridge::rivets::<ns>::<cmp>_<n>()`. |
-| `BRIDGE_RIVETS_DEFINE_DETECTOR_RANGE` | define | Generates a range Named Detector: `bridge::rivets::<ns>::<cmp1>_<n1>_<cmp2>_<n2>()`. |
-| `BRIDGE_RIVETS_GCC_EQ` | define | `#if`-usable form of bridge::rivets::gcc::eq. |
-| `BRIDGE_RIVETS_GCC_GE` | define | `#if`-usable form of bridge::rivets::gcc::ge. |
-| `BRIDGE_RIVETS_GCC_GT` | define | `#if`-usable form of bridge::rivets::gcc::gt. |
-| `BRIDGE_RIVETS_GCC_LE` | define | `#if`-usable form of bridge::rivets::gcc::le. |
-| `BRIDGE_RIVETS_GCC_LT` | define | `#if`-usable form of bridge::rivets::gcc::lt. |
-| `BRIDGE_RIVETS_GCC_VERSION` | define | GCC's major version, or `0` when not compiling with real GCC. |
-| `BRIDGE_RIVETS_LIBSTDCXX_EQ` | define | `#if`-usable form of bridge::rivets::libstdcxx::eq. |
-| `BRIDGE_RIVETS_LIBSTDCXX_GE` | define | `#if`-usable form of bridge::rivets::libstdcxx::ge. |
-| `BRIDGE_RIVETS_LIBSTDCXX_GT` | define | `#if`-usable form of bridge::rivets::libstdcxx::gt. |
-| `BRIDGE_RIVETS_LIBSTDCXX_LE` | define | `#if`-usable form of bridge::rivets::libstdcxx::le. |
-| `BRIDGE_RIVETS_LIBSTDCXX_LT` | define | `#if`-usable form of bridge::rivets::libstdcxx::lt. |
-| `BRIDGE_RIVETS_LIBSTDCXX_VERSION` | define | libstdc++'s release version, or `0` when libstdc++ isn't the active standard library. |
-| `bridge::rivets::clang::eq` | function | Is Clang's version exactly `n`? |
-| `bridge::rivets::clang::ge` | function | Is Clang's version greater than or equal to `n`? |
-| `bridge::rivets::clang::ge_18` | function | Named Detector: is clang's version ge 18? *. |
-| `bridge::rivets::clang::gt` | function | Is Clang's version greater than `n`? |
-| `bridge::rivets::clang::le` | function | Is Clang's version less than or equal to `n`? |
-| `bridge::rivets::clang::lt` | function | Is Clang's version less than `n`? |
-| `bridge::rivets::clang::version` | variable | Clang's major version, or `0` when not compiling with Clang. |
-| `bridge::rivets::gcc::eq` | function | Is GCC's version exactly `n`? |
-| `bridge::rivets::gcc::ge` | function | Is GCC's version greater than or equal to `n`? |
-| `bridge::rivets::gcc::gt` | function | Is GCC's version greater than `n`? |
-| `bridge::rivets::gcc::le` | function | Is GCC's version less than or equal to `n`? |
-| `bridge::rivets::gcc::lt` | function | Is GCC's version less than `n`? |
-| `bridge::rivets::gcc::version` | variable | GCC's major version, or `0` when not compiling with real GCC. |
-| `bridge::rivets::libstdcxx::eq` | function | Is libstdc++'s version exactly `n`? |
-| `bridge::rivets::libstdcxx::ge` | function | Is libstdc++'s version greater than or equal to `n`? |
-| `bridge::rivets::libstdcxx::gt` | function | Is libstdc++'s version greater than `n`? |
-| `bridge::rivets::libstdcxx::le` | function | Is libstdc++'s version less than or equal to `n`? |
-| `bridge::rivets::libstdcxx::lt` | function | Is libstdc++'s version less than `n`? |
-| `bridge::rivets::libstdcxx::version` | variable | libstdc++'s release version, or `0` when it isn't the active standard library. |
-| `bridge::rivets::standard::eq` | function | Is the active C++ standard exactly `ordinal`? |
-| `bridge::rivets::standard::ge` | function | Is the active C++ standard greater than or equal to `ordinal`? |
-| `bridge::rivets::standard::gt` | function | Is the active C++ standard greater than `ordinal`? |
-| `bridge::rivets::standard::le` | function | Is the active C++ standard less than or equal to `ordinal`? |
-| `bridge::rivets::standard::lt` | function | Is the active C++ standard less than `ordinal`? |
-| `bridge::rivets::standard::year_code_of` | function | Maps a short standard ordinal (`17`, `20`, `23`) to its `__cplusplus`-style year code (BRIDGE_CPP17 and friends). An ordinal bridge doesn't yet know maps to `-1`, which no real `__cplusplus` value can ever equal or exceed. |
+| `BRIDGE_CPLUSPLUS` | define | This is the active C++ standard, as a `__cplusplus`-style long integer. |
+| `BRIDGE_CPP17` | define | This is the `__cplusplus` value for C++17. |
+| `BRIDGE_CPP20` | define | This is the `__cplusplus` value for C++20. |
+| `BRIDGE_CPP23` | define | This is the `__cplusplus` value for C++23. |
+| `BRIDGE_HAS_CPP20` | define | This is non-zero when compiling as C++20 or later. |
+| `BRIDGE_HAS_CPP23` | define | This is non-zero when compiling as C++23 or later. |
+| `BRIDGE_RIVETS_CLANG_EQ` | define | This is the `#if`-usable form of `bridge::rivets::clang::eq`. |
+| `BRIDGE_RIVETS_CLANG_GE` | define | This is the `#if`-usable form of `bridge::rivets::clang::ge`. |
+| `BRIDGE_RIVETS_CLANG_GT` | define | This is the `#if`-usable form of `bridge::rivets::clang::gt`. |
+| `BRIDGE_RIVETS_CLANG_LE` | define | This is the `#if`-usable form of `bridge::rivets::clang::le`. |
+| `BRIDGE_RIVETS_CLANG_LT` | define | This is the `#if`-usable form of `bridge::rivets::clang::lt`. |
+| `BRIDGE_RIVETS_CLANG_VERSION` | define | This is Clang's major version, or `0` when not compiling with Clang. |
+| `BRIDGE_RIVETS_DEFINE_DETECTOR` | define | This macro generates a Named Detector: `bridge::rivets::<ns>::<cmp>_<n>()`. |
+| `BRIDGE_RIVETS_DEFINE_DETECTOR_RANGE` | define | This macro generates a range Named Detector: `bridge::rivets::<ns>::<cmp1>_<n1>_<cmp2>_<n2>()`. |
+| `BRIDGE_RIVETS_GCC_EQ` | define | This is the `#if`-usable form of `bridge::rivets::gcc::eq`. |
+| `BRIDGE_RIVETS_GCC_GE` | define | This is the `#if`-usable form of `bridge::rivets::gcc::ge`. |
+| `BRIDGE_RIVETS_GCC_GT` | define | This is the `#if`-usable form of `bridge::rivets::gcc::gt`. |
+| `BRIDGE_RIVETS_GCC_LE` | define | This is the `#if`-usable form of `bridge::rivets::gcc::le`. |
+| `BRIDGE_RIVETS_GCC_LT` | define | This is the `#if`-usable form of `bridge::rivets::gcc::lt`. |
+| `BRIDGE_RIVETS_GCC_VERSION` | define | This is GCC's major version, or `0` when not compiling with real GCC. |
+| `BRIDGE_RIVETS_LIBSTDCXX_EQ` | define | This is the `#if`-usable form of `bridge::rivets::libstdcxx::eq`. |
+| `BRIDGE_RIVETS_LIBSTDCXX_GE` | define | This is the `#if`-usable form of `bridge::rivets::libstdcxx::ge`. |
+| `BRIDGE_RIVETS_LIBSTDCXX_GT` | define | This is the `#if`-usable form of `bridge::rivets::libstdcxx::gt`. |
+| `BRIDGE_RIVETS_LIBSTDCXX_LE` | define | This is the `#if`-usable form of `bridge::rivets::libstdcxx::le`. |
+| `BRIDGE_RIVETS_LIBSTDCXX_LT` | define | This is the `#if`-usable form of `bridge::rivets::libstdcxx::lt`. |
+| `BRIDGE_RIVETS_LIBSTDCXX_VERSION` | define | This is libstdc++'s release version, or `0` when libstdc++ is not the active standard library. |
+| `bridge::rivets::clang::eq` | function | This checks whether Clang's version is exactly `n`. |
+| `bridge::rivets::clang::ge` | function | This checks whether Clang's version is greater than or equal to `n`. |
+| `bridge::rivets::clang::ge_18` | function | This is a Named Detector. This checks whether clang's version ge 18. *. |
+| `bridge::rivets::clang::gt` | function | This checks whether Clang's version is greater than `n`. |
+| `bridge::rivets::clang::le` | function | This checks whether Clang's version is less than or equal to `n`. |
+| `bridge::rivets::clang::lt` | function | This checks whether Clang's version is less than `n`. |
+| `bridge::rivets::clang::version` | variable | This is Clang's major version, or `0` when not compiling with Clang. |
+| `bridge::rivets::gcc::eq` | function | This checks whether GCC's version is exactly `n`. |
+| `bridge::rivets::gcc::ge` | function | This checks whether GCC's version is greater than or equal to `n`. |
+| `bridge::rivets::gcc::gt` | function | This checks whether GCC's version is greater than `n`. |
+| `bridge::rivets::gcc::le` | function | This checks whether GCC's version is less than or equal to `n`. |
+| `bridge::rivets::gcc::lt` | function | This checks whether GCC's version is less than `n`. |
+| `bridge::rivets::gcc::version` | variable | This is GCC's major version, or `0` when not compiling with real GCC. |
+| `bridge::rivets::libstdcxx::eq` | function | This checks whether libstdc++'s version is exactly `n`. |
+| `bridge::rivets::libstdcxx::ge` | function | This checks whether libstdc++'s version is greater than or equal to `n`. |
+| `bridge::rivets::libstdcxx::gt` | function | This checks whether libstdc++'s version is greater than `n`. |
+| `bridge::rivets::libstdcxx::le` | function | This checks whether libstdc++'s version is less than or equal to `n`. |
+| `bridge::rivets::libstdcxx::lt` | function | This checks whether libstdc++'s version is less than `n`. |
+| `bridge::rivets::libstdcxx::version` | variable | This is libstdc++'s release version, or `0` when it is not the active standard library. |
+| `bridge::rivets::standard::eq` | function | This checks whether the active C++ standard is exactly `ordinal`. |
+| `bridge::rivets::standard::ge` | function | This checks whether the active C++ standard is greater than or equal to `ordinal`. |
+| `bridge::rivets::standard::gt` | function | This checks whether the active C++ standard is greater than `ordinal`. |
+| `bridge::rivets::standard::le` | function | This checks whether the active C++ standard is less than or equal to `ordinal`. |
+| `bridge::rivets::standard::lt` | function | This checks whether the active C++ standard is less than `ordinal`. |
+| `bridge::rivets::standard::year_code_of` | function | This function maps a short standard ordinal (`17`, `20`, `23`) to its `__cplusplus`-style year code (BRIDGE_CPP17 and friends). An ordinal bridge does not yet know maps to `-1`. No real `__cplusplus` value can ever equal or exceed `-1`. |
 <!-- BRIDGE-DOCS:END -->
