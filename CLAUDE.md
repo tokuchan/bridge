@@ -20,6 +20,21 @@ an existing ADR must not be committed silently — either adjust the change
 to comply, or raise the conflict with the user and record a new ADR
 (marked as superseding the old one) before proceeding.
 
+## STE writing convention for the manual
+
+Facility pages (`docs/pages/<name>.md`) and every promoted symbol's
+`@brief`/`@details` Doxygen comment follow ASD-STE100 (Simplified
+Technical English): short sentences, one fact per sentence, active
+voice, no parenthetical asides. See
+[ADR-0018](docs/adr/0018-ste100-writing-standard.md) for the full
+decision and its scope. `docs/pages/ste-glossary.md` is the approved
+technical-name list for bridge/C++/programming terms — use a term only
+with the meaning recorded there, and add a new entry when a facility
+conversion needs a term the glossary doesn't have yet.
+
+ADRs, `CONTEXT.md`, and `CHANGELOG.md` are explicitly out of scope —
+keep their existing rationale-heavy, citation-style voice.
+
 ## Commit atomically, for `git bisect`
 
 When executing a plan (design session or otherwise), don't batch every
