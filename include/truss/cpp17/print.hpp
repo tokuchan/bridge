@@ -1,23 +1,25 @@
 /// @file print.hpp
-/// @brief Truss's `std::print`/`std::println` polyfill, built
-///        unconditionally on this same library's `format.hpp`.
+/// @brief This file holds Truss's `std::print`/`std::println`
+///        polyfill. This polyfill is built unconditionally on this
+///        same library's `format.hpp`.
 ///
-///        Never on whichever `format` facility Deck ultimately
-///        selects, preserving the "Truss never passes through"
-///        invariant uniformly across both features. Confirmed via
-///        benchmark (docs/adr/0012) that a hypothetical
-///        native-`std::format`-backed alternative isn't worth the
-///        architectural exception it would require: Truss's own
-///        `format` is measurably but only modestly slower (~15-30%
-///        per call, both paths well under 200ns), not the
-///        order-of-magnitude gap that would justify one. See
+///        This polyfill is never built on whichever `format`
+///        facility Deck ultimately selects. This preserves the
+///        "Truss never passes through" rule uniformly across both
+///        features. A benchmark confirmed this (docs/adr/0012): a
+///        hypothetical native-`std::format`-backed alternative is
+///        not worth the architectural exception it would require.
+///        Truss's own `format` is measurably, but only modestly,
+///        slower: about 15% to 30% slower per call, with both paths
+///        well under 200ns. This is not the order-of-magnitude gap
+///        that would justify an exception. See
 ///        docs/adr/0012-format-print-truss-owns-the-facility.md.
 ///
-///        `bridge::truss::print`/`println` are unconditionally this
-///        polyfill, regardless of standard or toolchain -- that
-///        selection happens exactly once, in Deck, independent of
-///        `format`'s own selection (the two cross their real
-///        passthrough thresholds at different standards).
+///        `bridge::truss::print` and `println` are always this
+///        polyfill, regardless of standard or toolchain. Deck makes
+///        that choice exactly once, independent of `format`'s own
+///        choice. `format` and `print`/`println` cross their real
+///        passthrough thresholds at different standards.
 #pragma once
 
 #include <cstdio>
@@ -30,7 +32,7 @@
 
 namespace bridge::detail::truss::cpp17::print {
 
-/// @brief Writes `format(fmt, args...)` to `stream`.
+/// @brief This function writes `format(fmt, args...)` to `stream`.
 /// @tparam Args The argument types.
 /// @param stream The destination stream.
 /// @param fmt The format string.
@@ -44,7 +46,7 @@ void print(std::FILE* stream, bridge::truss::format_string<std::decay_t<Args>...
     std::fwrite(s.data(), 1, s.size(), stream);
 }
 
-/// @brief Writes `format(fmt, args...)` to `stdout`.
+/// @brief This function writes `format(fmt, args...)` to `stdout`.
 /// @tparam Args The argument types.
 /// @param fmt The format string.
 /// @param args The arguments to format.
@@ -56,8 +58,8 @@ void print(bridge::truss::format_string<std::decay_t<Args>...> fmt, Args&&... ar
     print(stdout, fmt, std::forward<Args>(args)...);
 }
 
-/// @brief Writes `format(fmt, args...)` followed by a newline to
-///        `stream`.
+/// @brief This function writes `format(fmt, args...)` followed by a
+///        newline to `stream`.
 /// @tparam Args The argument types.
 /// @param stream The destination stream.
 /// @param fmt The format string.
@@ -71,8 +73,8 @@ void println(std::FILE* stream, bridge::truss::format_string<std::decay_t<Args>.
     std::fputc('\n', stream);
 }
 
-/// @brief Writes `format(fmt, args...)` followed by a newline to
-///        `stdout`.
+/// @brief This function writes `format(fmt, args...)` followed by a
+///        newline to `stdout`.
 /// @tparam Args The argument types.
 /// @param fmt The format string.
 /// @param args The arguments to format.
@@ -84,7 +86,7 @@ void println(bridge::truss::format_string<std::decay_t<Args>...> fmt, Args&&... 
     println(stdout, fmt, std::forward<Args>(args)...);
 }
 
-/// @brief Writes `format(fmt, args...)` to `os`.
+/// @brief This function writes `format(fmt, args...)` to `os`.
 /// @tparam Args The argument types.
 /// @param os The destination stream.
 /// @param fmt The format string.
@@ -98,7 +100,8 @@ void print(std::ostream& os, bridge::truss::format_string<std::decay_t<Args>...>
     os.write(s.data(), static_cast<std::streamsize>(s.size()));
 }
 
-/// @brief Writes `format(fmt, args...)` followed by a newline to `os`.
+/// @brief This function writes `format(fmt, args...)` followed by a
+///        newline to `os`.
 /// @tparam Args The argument types.
 /// @param os The destination stream.
 /// @param fmt The format string.
@@ -112,7 +115,8 @@ void println(std::ostream& os, bridge::truss::format_string<std::decay_t<Args>..
     os.put('\n');
 }
 
-/// @brief Symbols promoted to `bridge::exports::truss`.
+/// @brief This namespace promotes `print` and `println` to
+///        `bridge::exports::truss`.
 namespace exports {
 using bridge::detail::truss::cpp17::print::print;
 using bridge::detail::truss::cpp17::print::println;
@@ -120,22 +124,24 @@ using bridge::detail::truss::cpp17::print::println;
 
 } // namespace bridge::detail::truss::cpp17::print
 
-/// @brief Curated re-export surface; see docs/adr/0001-namespace-and-export-scheme.md.
+/// @brief This is the Exports namespace for `print`. See
+///        docs/adr/0001-namespace-and-export-scheme.md for the rule
+///        behind this namespace.
 ///
-/// No `inline namespace print { ... }` wrapper here (same reason as
-/// truss/cpp17/format.hpp's/expected.hpp's exports): this header's
-/// primary export is a function named `print`, and nesting it inside
-/// an inline namespace of the identical name makes that inline
-/// namespace's own qualified name reachable at this same scope,
-/// colliding with the promoted function. Promoting straight from the
-/// `cpp17` inline namespace avoids the collision.
+/// This namespace has no `inline namespace print { ... }` wrapper,
+/// for the same reason as truss/cpp17/format.hpp's and
+/// expected.hpp's Exports namespaces. This header's primary export
+/// is a function named `print`. The wrapper's name would be `print`
+/// too, and the two names would collide. This namespace promotes
+/// straight from the `cpp17` inline namespace instead, and avoids
+/// the collision.
 namespace bridge::exports::truss {
 inline namespace cpp17 {
 using namespace bridge::detail::truss::cpp17::print::exports;
 } // namespace cpp17
 } // namespace bridge::exports::truss
 
-/// @brief Truss's public API surface.
+/// @brief This is Truss's public API.
 namespace bridge::truss {
 using bridge::exports::truss::print;
 using bridge::exports::truss::println;

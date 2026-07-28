@@ -1,47 +1,52 @@
 /// @file format.hpp
-/// @brief The `format`/`format_to`/`format_to_n`/`formatted_size`/
-///        `vformat` family Deck owns: passthrough aliases to real
-///        `std::format`/etc. when the detected ecosystem has them, or
-///        Truss's polyfilled `bridge::truss::format`/etc. otherwise.
-///        Truss owns the whole facility outright (there's no
-///        pre-existing STL shape to extend, unlike `optional`) --
-///        docs/adr/0012-format-print-truss-owns-the-facility.md -- so,
-///        same as deck/cpp17/expected.hpp, this selection is a plain
-///        set of aliases with nothing left for Deck to build. Truss's
-///        `format` never itself passes through, even under C++20; this
-///        is the only place the selection happens. See docs/adr/0001-
-///        namespace-and-export-scheme.md for the namespace scheme and
-///        docs/adr/0008-best-effort-head-standard.md for the
-///        "behaviorally indistinguishable" bar this selection has to
-///        clear.
+/// @brief This file holds Deck's `format`, `format_to`,
+///        `format_to_n`, `formatted_size`, and `vformat` family.
+///        These act the same way in every ecosystem.
 ///
-/// The same passthrough-or-polyfill selection applies to every
-/// companion symbol a `formatter<T>` specialization or a `format_to`
-/// call might need to name -- `format_error`, `format_parse_context`,
-/// `format_context`, `formatter`, `format_string`, `format_to_n_result`,
-/// `format_args`, `make_format_args` -- not just the entry-point
-/// functions, mirroring why deck/cpp17/expected.hpp had to
-/// dual-select `unexpected`/`unexpect_t`/`bad_expected_access`
+///        When the detected ecosystem has real `std::format` and the
+///        rest, these are passthrough aliases to them. When the
+///        ecosystem does not have them yet, these are Truss's
+///        polyfilled `bridge::truss::format` and the rest.
+///
+///        Truss owns the whole facility outright. There is no STL
+///        shape to extend here, unlike `optional`
+///        (docs/adr/0012-format-print-truss-owns-the-facility.md).
+///        So, the same as deck/cpp17/expected.hpp, this choice is a
+///        plain set of aliases, with nothing left for Deck to build.
+///        Truss's `format` never itself passes through, even under
+///        C++20. This file is the only place this choice happens.
+///        See docs/adr/0001-namespace-and-export-scheme.md for the
+///        namespace rule. See docs/adr/0008-best-effort-head-
+///        standard.md for the bar this choice must clear.
+///
+/// The same passthrough-or-polyfill choice applies to every
+/// companion symbol a `formatter<T>` specialization or a
+/// `format_to` call might need to name: `format_error`,
+/// `format_parse_context`, `format_context`, `formatter`,
+/// `format_string`, `format_to_n_result`, `format_args`, and
+/// `make_format_args`. Not just the entry-point functions need this
+/// choice. This mirrors why deck/cpp17/expected.hpp had to
+/// dual-select `unexpected`, `unexpect_t`, and `bad_expected_access`
 /// alongside `expected` itself.
 ///
-/// **`formatter<T>` is a special case.** It's the one symbol here
-/// users *extend* (by specializing it for their own types), not just
-/// name. C++ doesn't allow specializing an alias template
-/// ([temp.alias]), so `bridge::formatter<T>` below -- an alias
-/// template on both branches -- can be *named* (e.g. in a non-template
-/// `formatter<T>::format` override that only wants to support one
-/// context type) but never *specialized* directly. A user extending
-/// formatting for their own type must specialize the real underlying
-/// template instead: `std::formatter<T>` under passthrough,
-/// `bridge::truss::formatter<T>` under polyfill -- and a type meant to
-/// stay formattable across the passthrough boundary (e.g. a toolchain
-/// upgrade from C++17 to C++20) genuinely needs *both*
-/// specializations, since the two engines look up formatters in
-/// different namespaces and C++17 has no `std::formatter` to unify
-/// toward. This is a real, inherent limitation of the language, not a
-/// gap this project's design failed to close -- see the
-/// `BRIDGE_RIVETS_DIVERGENCE_NOTE` on the polyfill branch below and
-/// docs/adr/0012's "formatter<T> is not transparently unifiable"
+/// **`formatter<T>` is a special case.** `formatter<T>` is the one
+/// symbol here users extend, by specializing it for their own
+/// types, not just name. C++ does not allow specializing an alias
+/// template ([temp.alias]). So `bridge::formatter<T>` below, an
+/// alias template on both branches, can be named (for example, in a
+/// non-template `formatter<T>::format` override that only wants to
+/// support one context type), but never specialized directly. A
+/// user who extends formatting for their own type must specialize
+/// the real underlying template instead: `std::formatter<T>` under
+/// passthrough, `bridge::truss::formatter<T>` under the polyfill. A
+/// type meant to stay formattable across the passthrough boundary,
+/// for example a toolchain upgrade from C++17 to C++20, genuinely
+/// needs both specializations. The two engines look up formatters
+/// in different namespaces, and C++17 has no `std::formatter` to
+/// unify toward. This is a real, inherent limitation of the
+/// language, not a gap this project's design failed to close. See
+/// the `BRIDGE_RIVETS_DIVERGENCE_NOTE` on the polyfill branch below,
+/// and docs/adr/0012's "formatter<T> is not transparently unifiable"
 /// section.
 #pragma once
 
@@ -61,42 +66,44 @@ namespace bridge::detail::deck::cpp17::format {
 
 #if BRIDGE_RIVETS_FEATURES_LIB_FORMAT >= 201907L
 
-/// @brief Passthrough: this ecosystem's `std::format_error` is
-///        available, so bridge adds nothing.
+/// @brief This is Deck's passthrough choice. This ecosystem's
+///        `std::format_error` is available. Bridge adds nothing
+///        here.
 /// @see https://en.cppreference.com/w/cpp/utility/format
 using format_error = std::format_error;
 
-/// @brief Passthrough companion to `format`.
+/// @brief This is the passthrough companion to `format`.
 /// @see https://en.cppreference.com/w/cpp/utility/format
 using format_parse_context = std::format_parse_context;
 
-/// @brief Passthrough companion to `format`. Named for
-///        completeness (e.g. a non-generic `formatter<T>::format`
-///        override) -- ordinary code names `FormatContext` via a
-///        template parameter instead, matching how real `formatter`
-///        specializations are written.
+/// @brief This is the passthrough companion to `format`. This name
+///        exists for completeness, for example a non-generic
+///        `formatter<T>::format` override. Ordinary code names
+///        `FormatContext` through a template parameter instead,
+///        matching how real `formatter` specializations are
+///        written.
 /// @see https://en.cppreference.com/w/cpp/utility/format
 template <class OutIt>
 using format_context = std::basic_format_context<OutIt, char>;
 
-/// @brief Passthrough companion to `format`. An alias template --
-///        cannot be specialized directly; see this file's top-of-file
-///        doc comment.
+/// @brief This is the passthrough companion to `format`. This is an
+///        alias template. You cannot specialize this directly; see
+///        this file's top-of-file doc comment.
 /// @see https://en.cppreference.com/w/cpp/utility/format
 template <class T>
 using formatter = std::formatter<T>;
 
-/// @brief Passthrough companion to `format`.
+/// @brief This is the passthrough companion to `format`.
 /// @see https://en.cppreference.com/w/cpp/utility/format
 template <class... Args>
 using format_string = std::format_string<Args...>;
 
-/// @brief Passthrough companion to `format`.
+/// @brief This is the passthrough companion to `format`.
 /// @see https://en.cppreference.com/w/cpp/utility/format
 template <class OutIt>
 using format_to_n_result = std::format_to_n_result<OutIt>;
 
-/// @brief Passthrough companion to `format`.
+/// @brief This is the passthrough companion to `format`.
 /// @see https://en.cppreference.com/w/cpp/utility/format
 using format_args = std::format_args;
 
@@ -121,38 +128,38 @@ BRIDGE_RIVETS_DIVERGENCE_NOTE(
     "bridge::formatter (polyfill): specializing bridge::truss::formatter<T> here makes T formattable via bridge::format on this toolchain, but is NOT picked up once native std::format passthrough activates (e.g. after a C++17->C++20 upgrade) -- that path looks up std::formatter<T> instead, in a different namespace. A type meant to stay formattable across that boundary needs both specializations. See docs/adr/0012.")
 /// \endcond
 
-/// @brief Truss's polyfill, for ecosystems without native
+/// @brief This is Truss's polyfill, for an ecosystem without
 ///        `std::format` yet.
 /// @see https://en.cppreference.com/w/cpp/utility/format
 using format_error = bridge::truss::format_error;
 
-/// @brief Polyfill companion to `format`.
+/// @brief This is the polyfill companion to `format`.
 /// @see https://en.cppreference.com/w/cpp/utility/format
 using format_parse_context = bridge::truss::format_parse_context;
 
-/// @brief Polyfill companion to `format`.
+/// @brief This is the polyfill companion to `format`.
 /// @see https://en.cppreference.com/w/cpp/utility/format
 template <class OutIt>
 using format_context = bridge::truss::format_context<OutIt>;
 
-/// @brief Polyfill companion to `format`. An alias template --
-///        cannot be specialized directly; see this file's top-of-file
-///        doc comment.
+/// @brief This is the polyfill companion to `format`. This is an
+///        alias template. You cannot specialize this directly; see
+///        this file's top-of-file doc comment.
 /// @see https://en.cppreference.com/w/cpp/utility/format
 template <class T>
 using formatter = bridge::truss::formatter<T>;
 
-/// @brief Polyfill companion to `format`.
+/// @brief This is the polyfill companion to `format`.
 /// @see https://en.cppreference.com/w/cpp/utility/format
 template <class... Args>
 using format_string = bridge::truss::format_string<Args...>;
 
-/// @brief Polyfill companion to `format`.
+/// @brief This is the polyfill companion to `format`.
 /// @see https://en.cppreference.com/w/cpp/utility/format
 template <class OutIt>
 using format_to_n_result = bridge::truss::format_to_n_result<OutIt>;
 
-/// @brief Polyfill companion to `format`.
+/// @brief This is the polyfill companion to `format`.
 /// @see https://en.cppreference.com/w/cpp/utility/format
 using format_args = bridge::truss::format_args;
 
@@ -165,7 +172,11 @@ using bridge::truss::vformat;
 
 #endif
 
-/// @brief Symbols promoted to `bridge::exports::deck`.
+/// @brief This namespace promotes format_error, format_parse_context,
+///        format_context, formatter, format_string,
+///        format_to_n_result, format_args, format, format_to,
+///        format_to_n, formatted_size, make_format_args, and vformat
+///        to `bridge::exports::deck`.
 namespace exports {
 using bridge::detail::deck::cpp17::format::format_error;
 using bridge::detail::deck::cpp17::format::format_parse_context;
@@ -184,22 +195,23 @@ using bridge::detail::deck::cpp17::format::vformat;
 
 } // namespace bridge::detail::deck::cpp17::format
 
-/// @brief Curated re-export surface; see docs/adr/0001-namespace-and-export-scheme.md.
+/// @brief This is the Exports namespace for `format`. See
+///        docs/adr/0001-namespace-and-export-scheme.md for the rule
+///        behind this namespace.
 ///
-/// No `inline namespace format { ... }` wrapper here (same reason as
-/// truss/cpp17/format.hpp's own exports): this header's primary export
-/// is a function named `format`, and nesting it inside an inline
-/// namespace of the identical name makes that inline namespace's own
-/// qualified name reachable at this same scope, colliding with the
-/// promoted function. Promoting straight from the `cpp17` inline
-/// namespace avoids the collision.
+/// This namespace has no `inline namespace format { ... }` wrapper,
+/// for the same reason as truss/cpp17/format.hpp's own Exports
+/// namespace. This header's primary export is a function named
+/// `format`. The wrapper's name would be `format` too, and the two
+/// names would collide. This namespace promotes straight from the
+/// `cpp17` inline namespace instead, and avoids the collision.
 namespace bridge::exports::deck {
 inline namespace cpp17 {
 using namespace bridge::detail::deck::cpp17::format::exports;
 } // namespace cpp17
 } // namespace bridge::exports::deck
 
-/// @brief Deck's public API surface.
+/// @brief This is Deck's public API.
 namespace bridge::deck {
 using bridge::exports::deck::format_error;
 using bridge::exports::deck::format_parse_context;
@@ -216,11 +228,12 @@ using bridge::exports::deck::make_format_args;
 using bridge::exports::deck::vformat;
 } // namespace bridge::deck
 
-/// @brief Bridge's public API surface -- flattened all the way to
-///        bridge::, matching expected's own promotion chain: every
-///        companion symbol is promoted from bridge::deck:: here, not
-///        bridge::truss:: directly, so they always match whichever
-///        path bridge::format itself selected.
+/// @brief This is bridge's public API. Every symbol here reaches all
+///        the way to `bridge::`, matching `expected`'s own promotion
+///        chain. Every companion symbol promotes from
+///        `bridge::deck::` here, not from `bridge::truss::` directly.
+///        This keeps every companion matching whichever path
+///        `bridge::format` itself selected.
 namespace bridge {
 using bridge::deck::format_error;
 using bridge::deck::format_parse_context;

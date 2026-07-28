@@ -1,27 +1,31 @@
 /// @file format.hpp
-/// @brief Truss's from-scratch `std::format`/`std::print` polyfill for
-///        standards that predate C++20/23. Unlike `optional` (free
-///        functions on an existing type) or `expected` (a full class,
-///        since no existing type to extend), `format` is
-///        function-shaped with no pre-existing STL facility at all
-///        pre-C++20 — Truss owns the whole thing: this file's the
-///        parser, the contexts, the `formatter<T>` customization point
-///        and its built-in specializations, and the top-level
-///        `format`/`format_to`/`format_to_n`/`formatted_size`/`vformat`
-///        entry points. `print`/`println` (truss/cpp17/print.hpp) are
+/// @brief This file holds Truss's `std::format`/`std::print`
+///        polyfill, for standards that predate C++20/23. This
+///        polyfill is built from scratch.
+///
+///        Unlike `optional` (free functions on an existing type) or
+///        `expected` (a full class, since there is no existing type
+///        to extend), `format` is function-shaped. `format` has no
+///        STL facility at all before C++20. So Truss owns the whole
+///        thing: this file holds the parser, the contexts, the
+///        `formatter<T>` customization point and its built-in
+///        specializations, and the top-level `format`, `format_to`,
+///        `format_to_n`, `formatted_size`, and `vformat` entry
+///        points. `print` and `println` (truss/cpp17/print.hpp) are
 ///        built on this file unconditionally, never on whichever
 ///        format facility Deck ultimately selects. See
 ///        docs/adr/0012-format-print-truss-owns-the-facility.md for
-///        the full rationale and disclosed scope limitations,
+///        the full rationale and disclosed scope limitations. See
 ///        docs/adr/0001-namespace-and-export-scheme.md for the
-///        namespace scheme, and docs/adr/0011-warn-on-surprising-
+///        namespace rule. See docs/adr/0011-warn-on-surprising-
 ///        facility-divergences.md for how those limitations are
 ///        surfaced to a consumer actually on the polyfill path.
 ///
-/// `bridge::truss::format`/`format_to`/etc. are unconditionally this
-/// polyfill, regardless of standard or toolchain — Truss never itself
-/// passes through to `std::format`, even under C++20+ where the real
-/// facility is available. That selection happens exactly once, in Deck.
+/// `bridge::truss::format`, `format_to`, and the rest are always
+/// this polyfill, regardless of standard or toolchain. Truss never
+/// itself passes through to `std::format`, even under C++20 or
+/// later, where the real facility is available. Deck makes that
+/// choice exactly once instead.
 #pragma once
 
 #include <charconv>
@@ -39,71 +43,76 @@
 
 namespace bridge::detail::truss::cpp17::format {
 
-/// @brief Thrown when a format string is malformed, references an
-///        out-of-range or type-mismatched argument, or otherwise
-///        can't be honored. Matches `std::format_error`.
+/// @brief A format string throws this class when it is malformed,
+///        references an out-of-range or type-mismatched argument, or
+///        otherwise cannot be honored. This class matches
+///        `std::format_error`.
 /// @see https://en.cppreference.com/w/cpp/utility/format
 class format_error : public std::runtime_error {
 public:
-    /// @brief Constructs from a `std::string` message.
+    /// @brief This constructor builds from a `std::string` message.
     /// @param what_arg The error message.
     explicit format_error(const std::string& what_arg) : std::runtime_error(what_arg) {}
-    /// @brief Constructs from a C-string message.
+    /// @brief This constructor builds from a C-string message.
     /// @param what_arg The error message.
     explicit format_error(const char* what_arg) : std::runtime_error(what_arg) {}
 };
 
-/// @brief Cursor over the not-yet-consumed portion of a replacement
-///        field's format-spec substring, plus the auto/manual
-///        argument-indexing state shared across the whole format
-///        string.
+/// @brief This class is a cursor over the not-yet-consumed portion
+///        of a replacement field's format-spec substring. This class
+///        also holds the auto/manual argument-indexing state shared
+///        across the whole format string.
 ///
-///        Matches real `std::format_parse_context`'s
-///        `begin()`/`end()`/`advance_to()`/`next_arg_id()`/
-///        `check_arg_id()` shape — a user's `formatter<T>::parse`
+///        This class matches real `std::format_parse_context`'s
+///        `begin()`, `end()`, `advance_to()`, `next_arg_id()`, and
+///        `check_arg_id()` shape. A user's `formatter<T>::parse`
 ///        written against this type is source-compatible with the
-///        real one. Not `constexpr` here (unlike the real type): this
-///        polyfill never evaluates format strings at compile time in
-///        the first place (no `consteval` pre-C++20 to do so with —
-///        see docs/adr/0012's disclosed compile-time-validation gap),
-///        so there's nothing to gain from it.
+///        real one. This class is not `constexpr`, unlike the real
+///        type. This polyfill never evaluates format strings at
+///        compile time in the first place. C++17 has no `consteval`
+///        to do so with, before C++20 (see docs/adr/0012's disclosed
+///        compile-time-validation gap). So there is nothing to gain
+///        from `constexpr` here.
 /// @see https://en.cppreference.com/w/cpp/utility/format
 class format_parse_context {
 public:
-    /// @brief The character type. Always `char` — this polyfill is
-    ///        narrow-char/UTF-8 only (docs/adr/0012).
+    /// @brief This is the character type. This is always `char`.
+    ///        This polyfill is narrow-char/UTF-8 only (docs/adr/0012).
     using char_type = char;
-    /// @brief The iterator type over the remaining spec substring.
+    /// @brief This is the iterator type over the remaining spec
+    ///        substring.
     using const_iterator = std::string_view::const_iterator;
     /// @copydoc const_iterator
     using iterator = const_iterator;
 
-    /// @brief Constructs a context over `fmt`.
+    /// @brief This constructor builds a context over `fmt`.
     /// @param fmt The full format string (or, when constructed
     ///        per-field, the spec substring for one field).
     /// @param num_args The number of format arguments available, for
     ///        diagnostic purposes.
     explicit format_parse_context(std::string_view fmt, std::size_t num_args = 0) noexcept
         : fmt_(fmt), num_args_(num_args) {}
-    /// @brief Never copied, matching the real type.
+    /// @brief This class is never copied, matching the real type.
     format_parse_context(const format_parse_context&) = delete;
-    /// @brief Never copied, matching the real type.
+    /// @brief This class is never copied, matching the real type.
     /// @return `*this`.
     format_parse_context& operator=(const format_parse_context&) = delete;
 
-    /// @brief The start of the not-yet-consumed spec substring.
+    /// @brief This is the start of the not-yet-consumed spec
+    ///        substring.
     /// @return An iterator to the first unconsumed character.
     const_iterator begin() const noexcept { return fmt_.begin(); }
-    /// @brief One past the last character of the spec substring.
+    /// @brief This is one past the last character of the spec
+    ///        substring.
     /// @return An iterator one past the last character.
     const_iterator end() const noexcept { return fmt_.end(); }
-    /// @brief Marks everything before `it` as consumed.
+    /// @brief This marks everything before `it` as consumed.
     /// @param it An iterator previously obtained from this context.
     void advance_to(const_iterator it) { fmt_ = fmt_.substr(static_cast<std::size_t>(it - fmt_.begin())); }
 
-    /// @brief Allocates the next automatic argument index. Throws if
-    ///        this format string has already used an explicit
-    ///        (manual) argument index — matching real
+    /// @brief This allocates the next automatic argument index. This
+    ///        method throws when this format string has already used
+    ///        an explicit, manual argument index. This matches real
     ///        `std::format_parse_context`'s "cannot mix" rule.
     /// @return The next automatic argument index, starting from 0.
     /// @throws format_error if manual indexing was already used.
@@ -114,9 +123,9 @@ public:
         indexing_ = indexing_mode::automatic;
         return next_id_++;
     }
-    /// @brief Records that `id` was used as an explicit (manual)
-    ///        argument index. Throws if this format string has
-    ///        already used automatic indexing.
+    /// @brief This records that `id` was used as an explicit, manual
+    ///        argument index. This method throws when this format
+    ///        string has already used automatic indexing.
     /// @param id The explicit argument index just parsed (unused
     ///        beyond the indexing-mode check; out-of-range checking
     ///        happens where the argument is actually fetched).
@@ -129,7 +138,7 @@ public:
         indexing_ = indexing_mode::manual;
     }
 
-    /// @brief The number of format arguments available.
+    /// @brief This is the number of format arguments available.
     /// @return The argument count passed at construction.
     std::size_t num_args() const noexcept { return num_args_; }
 
@@ -409,44 +418,50 @@ inline std::size_t resolve_width_or_precision(const width_or_precision& wp, cons
     return static_cast<std::size_t>(v);
 }
 
-/// @brief The output context passed to `formatter<T>::format`:
-///        wherever formatted output goes (`OutIt`), plus access to
-///        dynamic width/precision resolution. Matches real
-///        `std::basic_format_context<OutIt, char>`'s essential shape
-///        — a user's `formatter<T>::format` written against this type
-///        is source-compatible with the real one.
+/// @brief This class is the output context passed to
+///        `formatter<T>::format`. This class holds wherever
+///        formatted output goes (`OutIt`), plus access to dynamic
+///        width/precision resolution.
+///
+///        This class matches real
+///        `std::basic_format_context<OutIt, char>`'s essential
+///        shape. A user's `formatter<T>::format` written against
+///        this type is source-compatible with the real one.
 /// @tparam OutIt The output iterator type. `format_to<OutIt>` is
 ///         generic over any output iterator, matching the real
-///         signature (not a curated fixed set of sinks) — this is
-///         template parameter that makes that possible.
+///         signature, not a curated fixed set of sinks. This
+///         template parameter makes that possible.
 /// @see https://en.cppreference.com/w/cpp/utility/format
 template <class OutIt>
 class format_context {
 public:
-    /// @brief The output iterator type.
+    /// @brief This is the output iterator type.
     using iterator = OutIt;
-    /// @brief The character type. Always `char` (docs/adr/0012).
+    /// @brief This is the character type. This is always `char`
+    ///        (docs/adr/0012).
     using char_type = char;
 
-    /// @brief Constructs a context writing to `out`, with `src` for
-    ///        dynamic width/precision resolution.
+    /// @brief This constructor builds a context writing to `out`,
+    ///        with `src` for dynamic width/precision resolution.
     /// @param out The output iterator.
     /// @param src The dynamic-argument source. Must outlive this
-    ///        context — held by reference, not copied, since it's
-    ///        always a short-lived local in whichever top-level
-    ///        entry point (`format`/`format_to`/`vformat`) constructed
-    ///        this context.
+    ///        context. This context holds `src` by reference, not by
+    ///        copy, since `src` is always a short-lived local in
+    ///        whichever top-level entry point (`format`, `format_to`,
+    ///        or `vformat`) constructed this context.
     format_context(OutIt out, const dynamic_arg_source& src) : out_(out), src_(src) {}
 
-    /// @brief The current output iterator.
+    /// @brief This is the current output iterator.
     /// @return The output iterator.
     iterator out() const { return out_; }
-    /// @brief Replaces the output iterator (after writing through a
-    ///        local copy of it, e.g. via `std::format_to`).
+    /// @brief This replaces the output iterator. Callers do this
+    ///        after writing through a local copy of it, for example
+    ///        through `std::format_to`.
     /// @param it The new output iterator.
     void advance_to(iterator it) { out_ = it; }
 
-    /// @brief Resolves dynamic width/precision argument `index`.
+    /// @brief This resolves dynamic width/precision argument
+    ///        `index`.
     /// @param index The argument index.
     /// @return The argument's value as a `long long`.
     /// @throws format_error if `index` is out of range or the
@@ -458,21 +473,27 @@ private:
     const dynamic_arg_source& src_;
 };
 
-/// @brief The `formatter<T>` customization point, disabled by default
-///        — matching real `std::formatter`'s "disabled formatter"
-///        behavior for any `T` without a specialization. Attempting to
-///        use an unformattable type fails to compile with a
-///        reasonably clear "deleted function" error rather than a
-///        wall of SFINAE errors, via the deleted default constructor.
+/// @brief This struct is the `formatter<T>` customization point.
+///        This struct is disabled by default, matching real
+///        `std::formatter`'s "disabled formatter" behavior for any
+///        `T` without a specialization.
+///
+///        Code that tries to use an unformattable type fails to
+///        compile with a reasonably clear "deleted function" error,
+///        rather than a wall of SFINAE errors, through the deleted
+///        default constructor.
 /// @tparam T The type to format.
 /// @see https://en.cppreference.com/w/cpp/utility/format
 template <class T, class = void>
 struct formatter {
-    /// @brief Deleted: `T` has no `formatter` specialization.
+    /// @brief This constructor is deleted. `T` has no `formatter`
+    ///        specialization.
     formatter() = delete;
-    /// @brief Deleted: `T` has no `formatter` specialization.
+    /// @brief This constructor is deleted. `T` has no `formatter`
+    ///        specialization.
     formatter(const formatter&) = delete;
-    /// @brief Deleted: `T` has no `formatter` specialization.
+    /// @brief This operator is deleted. `T` has no `formatter`
+    ///        specialization.
     /// @return Never returns; deleted.
     formatter& operator=(const formatter&) = delete;
 };
@@ -1015,17 +1036,19 @@ private:
     parsed_std_spec spec_{};
 };
 
-/// @brief A format string, implicitly constructible from anything
-///        convertible to `std::string_view`, matching real
-///        `std::format_string<Args...>`'s converting-constructor shape.
+/// @brief This class is a format string. This class is implicitly
+///        constructible from anything convertible to
+///        `std::string_view`. This class matches real
+///        `std::format_string<Args...>`'s converting-constructor
+///        shape.
 ///
-///        Unlike the real type, this constructor does **not** validate
-///        the format string at compile time -- C++17 has no `consteval`
-///        to do that with (docs/adr/0012's disclosed
+///        Unlike the real type, this constructor does not validate
+///        the format string at compile time. C++17 has no
+///        `consteval` to do that with (docs/adr/0012's disclosed
 ///        compile-time-validation gap). Validation happens only when
-///        the string is actually used to format, at which point a
-///        malformed spec throws `format_error` same as `vformat`'s
-///        contract always has.
+///        code actually uses the string to format. At that point, a
+///        malformed spec throws `format_error`, the same contract
+///        `vformat` always has.
 /// @tparam Args The argument types this format string is meant to be
 ///         used with (unused by this type itself; carried only so
 ///         `format`/`format_to`/etc.'s signatures match the real ones).
@@ -1033,13 +1056,14 @@ private:
 template <class... Args>
 class format_string {
 public:
-    /// @brief Converts from anything convertible to `std::string_view`.
+    /// @brief This constructor converts from anything convertible to
+    ///        `std::string_view`.
     /// @tparam T The source type.
     /// @param s The format string.
     template <class T, class = std::enable_if_t<std::is_convertible_v<const T&, std::string_view>>>
     constexpr format_string(const T& s) noexcept : fmt_(s) {}
 
-    /// @brief The underlying format string.
+    /// @brief This is the underlying format string.
     /// @return The format string as a `std::string_view`.
     constexpr std::string_view get() const noexcept { return fmt_; }
 
@@ -1226,24 +1250,26 @@ private:
 } // namespace engine
 /// \endcond
 
-/// @brief The result of `format_to_n`: `out` is an iterator one past
-///        the last element actually written; `size` is the total
-///        number of characters that *would* have been written for an
-///        unlimited output size, matching real `std::format_to_n_result`.
+/// @brief This struct holds `format_to_n`'s result. `out` is an
+///        iterator one past the last element actually written.
+///        `size` is the total number of characters that would have
+///        been written, for an unlimited output size. This struct
+///        matches real `std::format_to_n_result`.
 /// @tparam OutIt The output iterator type.
 /// @see https://en.cppreference.com/w/cpp/utility/format
 template <class OutIt>
 struct format_to_n_result {
-    /// @brief One past the last element actually written.
+    /// @brief This is one past the last element actually written.
     OutIt out;
-    /// @brief The total number of characters that would have been
-    ///        written for an unlimited output size.
+    /// @brief This is the total number of characters that would have
+    ///        been written, for an unlimited output size.
     std::ptrdiff_t size;
 };
 
-/// @brief Formats `args` according to `fmt`, writing to `out`. Generic
-///        over any output iterator, matching the real signature (not
-///        a curated fixed set of sinks).
+/// @brief This function formats `args` according to `fmt`, writing
+///        to `out`. This function is generic over any output
+///        iterator, matching the real signature, not a curated fixed
+///        set of sinks.
 /// @tparam OutIt The output iterator type.
 /// @tparam Args The argument types.
 /// @param out The output iterator.
@@ -1266,8 +1292,8 @@ OutIt format_to(OutIt out, format_string<std::decay_t<Args>...> fmt, Args&&... a
                                   });
 }
 
-/// @brief Formats `args` according to `fmt`, returning the result as a
-///        new `std::string`.
+/// @brief This function formats `args` according to `fmt`, returning
+///        the result as a new `std::string`.
 /// @tparam Args The argument types.
 /// @param fmt The format string.
 /// @param args The arguments to format.
@@ -1282,8 +1308,8 @@ std::string format(format_string<std::decay_t<Args>...> fmt, Args&&... args) {
     return result;
 }
 
-/// @brief Formats `args` according to `fmt`, writing at most `n`
-///        characters to `out`.
+/// @brief This function formats `args` according to `fmt`, writing
+///        at most `n` characters to `out`.
 /// @tparam OutIt The output iterator type.
 /// @tparam Args The argument types.
 /// @param out The output iterator.
@@ -1303,8 +1329,8 @@ format_to_n_result<OutIt> format_to_n(OutIt out, std::ptrdiff_t n, format_string
     return format_to_n_result<OutIt>{result.base(), result.count()};
 }
 
-/// @brief Computes the length `format(fmt, args...)` would produce,
-///        without building the string.
+/// @brief This function computes the length `format(fmt, args...)`
+///        would produce, without building the string.
 /// @tparam Args The argument types.
 /// @param fmt The format string.
 /// @param args The arguments to format.
@@ -1319,22 +1345,25 @@ std::size_t formatted_size(format_string<std::decay_t<Args>...> fmt, Args&&... a
     return result.count();
 }
 
-/// @brief Type-erased argument pack for @ref vformat, constructed via
+/// @brief This class is a type-erased argument pack for @ref
+///        vformat. You construct this class through
 ///        `make_format_args`.
 ///
-///        Narrower in scope than real `std::format_args`: pinned to
-///        `format_context<std::back_insert_iterator<std::string>>`
-///        rather than generic over any output iterator, since this
-///        polyfill's scope doesn't include `vformat_to` (only plain
-///        `vformat`, which always targets `std::string`) -- a direct,
-///        disclosed consequence of docs/adr/0012's scope decision, not
-///        a separate divergence in its own right.
+///        This class is narrower in scope than real
+///        `std::format_args`. This class is pinned to
+///        `format_context<std::back_insert_iterator<std::string>>`,
+///        not generic over any output iterator. This polyfill's
+///        scope does not include `vformat_to`, only plain `vformat`,
+///        which always targets `std::string`. This is a direct,
+///        disclosed consequence of docs/adr/0012's scope decision,
+///        not a separate divergence in its own right.
 /// @see https://en.cppreference.com/w/cpp/utility/format
 class format_args {
 public:
-    /// @brief Dispatches to argument `index`'s `formatter<T>::parse`/
-    ///        `format`, matching the compile-time-pack dispatch
-    ///        `format_to` uses but through this type-erased path.
+    /// @brief This method dispatches to argument `index`'s
+    ///        `formatter<T>::parse`/`format`. This matches the
+    ///        compile-time-pack dispatch `format_to` uses, but
+    ///        through this type-erased path.
     /// @param index The argument index.
     /// @param pctx The parse context, positioned at the field's spec.
     /// @param ctx The output context.
@@ -1343,12 +1372,13 @@ public:
         format_fn_(index, pctx, ctx);
     }
 
-    /// @brief Resolves dynamic width/precision argument `index`.
+    /// @brief This method resolves dynamic width/precision argument
+    ///        `index`.
     /// @param index The argument index.
     /// @return The argument's value as a `long long`.
     long long dynamic_arg(std::size_t index) const { return dynamic_fn_(index); }
 
-    /// @brief The number of arguments.
+    /// @brief This is the number of arguments.
     /// @return The argument count.
     std::size_t count() const noexcept { return count_; }
 
@@ -1362,16 +1392,17 @@ private:
     std::size_t count_ = 0;
 };
 
-/// @brief Constructs a type-erased `format_args` from `args`, for
-///        `vformat`.
+/// @brief This function constructs a type-erased `format_args` from
+///        `args`, for `vformat`.
 ///
-///        Matches real `std::make_format_args`' shape (lvalue
-///        references -- called with the named parameters of whatever
-///        function is forwarding into `vformat`, which are themselves
-///        lvalues regardless of the original argument's value
-///        category). The result is only valid for the duration of the
-///        full expression that calls `vformat` with it, same lifetime
-///        constraint as the real function.
+///        This function matches real `std::make_format_args`'s
+///        shape: lvalue references, called with the named parameters
+///        of whatever function is forwarding into `vformat`. These
+///        parameters are themselves lvalues, regardless of the
+///        original argument's value category. The result is only
+///        valid for the duration of the full expression that calls
+///        `vformat` with it, the same lifetime constraint the real
+///        function has.
 /// @tparam Args The argument types.
 /// @param args The arguments.
 /// @return The type-erased argument pack.
@@ -1392,11 +1423,12 @@ format_args make_format_args(Args&... args) {
     return fa;
 }
 
-/// @brief Formats a type-erased argument pack according to `fmt`,
-///        returning the result as a new `std::string`. Unlike
-///        `format`, `fmt` is a plain `std::string_view` -- `vformat`
-///        is explicitly the "runtime format string, no format-string-
-///        specific type" entry point, matching real `std::vformat`.
+/// @brief This function formats a type-erased argument pack
+///        according to `fmt`, returning the result as a new
+///        `std::string`. Unlike `format`, `fmt` is a plain
+///        `std::string_view`. `vformat` is explicitly the entry
+///        point for a runtime format string, with no format-string-
+///        specific type. This matches real `std::vformat`.
 /// @param fmt The format string.
 /// @param args The type-erased arguments, from `make_format_args`.
 /// @return The formatted string.
@@ -1413,7 +1445,11 @@ inline std::string vformat(std::string_view fmt, format_args args) {
     return result;
 }
 
-/// @brief Symbols promoted to `bridge::exports::truss`.
+/// @brief This namespace promotes format_error, format_parse_context,
+///        format_context, formatter, format_string,
+///        format_to_n_result, format_to, format, format_to_n,
+///        formatted_size, format_args, make_format_args, and vformat
+///        to `bridge::exports::truss`.
 namespace exports {
 using bridge::detail::truss::cpp17::format::format_error;
 using bridge::detail::truss::cpp17::format::format_parse_context;
@@ -1432,23 +1468,23 @@ using bridge::detail::truss::cpp17::format::vformat;
 
 } // namespace bridge::detail::truss::cpp17::format
 
-/// @brief Curated re-export surface; see docs/adr/0001-namespace-and-export-scheme.md.
+/// @brief This is the Exports namespace for `format`. See
+///        docs/adr/0001-namespace-and-export-scheme.md for the rule
+///        behind this namespace.
 ///
-/// No `inline namespace format { ... }` wrapper here (same reason as
-/// truss/cpp17/expected.hpp's exports): this header's exports will
-/// include a function named `format` once the top-level entry points
-/// land, and nesting it inside an inline namespace of the identical
-/// name makes that inline namespace's own qualified name reachable at
-/// this same scope, colliding with the promoted function. Promoting
-/// straight from the `cpp17` inline namespace avoids the collision up
-/// front rather than hitting it later.
+/// This namespace has no `inline namespace format { ... }` wrapper,
+/// for the same reason as truss/cpp17/expected.hpp's Exports
+/// namespace. This header's exports include a function named
+/// `format`. The wrapper's name would be `format` too, and the two
+/// names would collide. This namespace promotes straight from the
+/// `cpp17` inline namespace instead, and avoids the collision.
 namespace bridge::exports::truss {
 inline namespace cpp17 {
 using namespace bridge::detail::truss::cpp17::format::exports;
 } // namespace cpp17
 } // namespace bridge::exports::truss
 
-/// @brief Truss's public API surface.
+/// @brief This is Truss's public API.
 namespace bridge::truss {
 using bridge::exports::truss::format_error;
 using bridge::exports::truss::format_parse_context;

@@ -1,27 +1,29 @@
 /// @file print.hpp
-/// @brief The `print`/`println` family Deck owns: passthrough aliases
-///        to real `std::print`/`std::println` when the detected
-///        ecosystem has them, or Truss's polyfilled
-///        `bridge::truss::print`/`println` otherwise.
+/// @brief This file holds Deck's `print` and `println` family. When
+///        the detected ecosystem has real `std::print` and
+///        `std::println`, these are passthrough aliases to them.
+///        When the ecosystem does not have them yet, these are
+///        Truss's polyfilled `bridge::truss::print`/`println`.
 ///
-///        Gated on `BRIDGE_RIVETS_FEATURES_LIB_PRINT` independently of
-///        `format.hpp`'s own `BRIDGE_RIVETS_FEATURES_LIB_FORMAT` gate
-///        -- confirmed by direct compiler probe (docs/adr/0012) that
-///        `format` and `print` cross their real passthrough
-///        thresholds at different standards (C++20 vs C++23), so an
-///        ecosystem can have one without the other.
+///        This file gates on `BRIDGE_RIVETS_FEATURES_LIB_PRINT`,
+///        independently of `format.hpp`'s own
+///        `BRIDGE_RIVETS_FEATURES_LIB_FORMAT` gate. A direct compiler
+///        probe confirmed this (docs/adr/0012): `format` and `print`
+///        cross their real passthrough thresholds at different
+///        standards, C++20 versus C++23. So an ecosystem can have
+///        one without the other.
 ///
-/// Both the `FILE*`-targeting and `ostream`-targeting overload
-/// families are aliased here -- confirmed by direct compiler probe
-/// that real `std::print`/`std::println` provide both (P2093), not
-/// just the `FILE*` family, so there's nothing bridge-specific to
-/// reconcile between the two paths.
+/// This file aliases both the `FILE*`-targeting and
+/// `ostream`-targeting overload families. A direct compiler probe
+/// confirmed that real `std::print`/`std::println` provide both
+/// (P2093), not just the `FILE*` family. So there is nothing
+/// bridge-specific to reconcile between the two paths.
 ///
-/// Same "Truss never passes through, only Deck selects" invariant as
-/// `format.hpp`/`expected.hpp`; unlike `format.hpp`, `print`/`println`
-/// have no user-extensible customization point, so this header is a
-/// plain set of `using` aliases with none of `formatter<T>`'s
-/// alias-template caveat.
+/// This file follows the same "Truss never passes through, only
+/// Deck selects" rule as `format.hpp`/`expected.hpp`. Unlike
+/// `format.hpp`, `print` and `println` have no user-extensible
+/// customization point. So this header is a plain set of `using`
+/// aliases, with none of `formatter<T>`'s alias-template caveat.
 #pragma once
 
 #include <rivets/features.hpp>
@@ -55,7 +57,8 @@ using bridge::truss::println;
 
 #endif
 
-/// @brief Symbols promoted to `bridge::exports::deck`.
+/// @brief This namespace promotes `print` and `println` to
+///        `bridge::exports::deck`.
 namespace exports {
 using bridge::detail::deck::cpp17::print::print;
 using bridge::detail::deck::cpp17::print::println;
@@ -63,29 +66,32 @@ using bridge::detail::deck::cpp17::print::println;
 
 } // namespace bridge::detail::deck::cpp17::print
 
-/// @brief Curated re-export surface; see docs/adr/0001-namespace-and-export-scheme.md.
+/// @brief This is the Exports namespace for `print`. See
+///        docs/adr/0001-namespace-and-export-scheme.md for the rule
+///        behind this namespace.
 ///
-/// No `inline namespace print { ... }` wrapper here (same reason as
-/// truss/cpp17/print.hpp's/format.hpp's exports): this header's
-/// primary export is a function named `print`, and nesting it inside
-/// an inline namespace of the identical name makes that inline
-/// namespace's own qualified name reachable at this same scope,
-/// colliding with the promoted function. Promoting straight from the
-/// `cpp17` inline namespace avoids the collision.
+/// This namespace has no `inline namespace print { ... }` wrapper,
+/// for the same reason as truss/cpp17/print.hpp's and
+/// format.hpp's Exports namespaces. This header's primary export is
+/// a function named `print`. The wrapper's name would be `print`
+/// too, and the two names would collide. This namespace promotes
+/// straight from the `cpp17` inline namespace instead, and avoids
+/// the collision.
 namespace bridge::exports::deck {
 inline namespace cpp17 {
 using namespace bridge::detail::deck::cpp17::print::exports;
 } // namespace cpp17
 } // namespace bridge::exports::deck
 
-/// @brief Deck's public API surface.
+/// @brief This is Deck's public API.
 namespace bridge::deck {
 using bridge::exports::deck::print;
 using bridge::exports::deck::println;
 } // namespace bridge::deck
 
-/// @brief Bridge's public API surface -- flattened all the way to
-///        bridge::, matching format's/expected's own promotion chain.
+/// @brief This is bridge's public API. Every symbol here reaches all
+///        the way to `bridge::`, matching `format`'s and
+///        `expected`'s own promotion chain.
 namespace bridge {
 using bridge::deck::print;
 using bridge::deck::println;
