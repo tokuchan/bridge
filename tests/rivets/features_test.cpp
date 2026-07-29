@@ -164,3 +164,26 @@ TEST_CASE("BRIDGE_RIVETS_FEATURES_LIB_STOP_TOKEN is #if-usable", "[rivets][featu
     FAIL("BRIDGE_RIVETS_FEATURES_LIB_STOP_TOKEN should be 0 or at least the C++20 baseline");
 #endif
 }
+
+TEST_CASE("bridge::rivets::features::lib_source_location matches __cpp_lib_source_location", "[rivets][features]") {
+#ifdef __cpp_lib_source_location
+    REQUIRE(bridge::rivets::features::lib_source_location == __cpp_lib_source_location);
+#else
+    // std::source_location doesn't exist at all before C++20 --
+    // __cpp_lib_source_location is legitimately undefined under
+    // -std=c++17, confirmed by direct compiler probe before this
+    // Feature Test was written (this project's GCC reports exactly
+    // 201907L from -std=c++20 onward, undefined under -std=c++17).
+    REQUIRE(bridge::rivets::features::lib_source_location == 0);
+#endif
+}
+
+TEST_CASE("BRIDGE_RIVETS_FEATURES_LIB_SOURCE_LOCATION is #if-usable", "[rivets][features]") {
+#if BRIDGE_RIVETS_FEATURES_LIB_SOURCE_LOCATION == 0
+    SUCCEED(); // pre-C++20 toolchains legitimately report 0 here
+#elif BRIDGE_RIVETS_FEATURES_LIB_SOURCE_LOCATION >= 201907L
+    SUCCEED();
+#else
+    FAIL("BRIDGE_RIVETS_FEATURES_LIB_SOURCE_LOCATION should be 0 or at least the C++20 baseline");
+#endif
+}

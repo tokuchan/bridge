@@ -124,6 +124,16 @@
 #    define BRIDGE_RIVETS_FEATURES_LIB_STOP_TOKEN 0
 #endif
 
+/// @def BRIDGE_RIVETS_FEATURES_LIB_SOURCE_LOCATION
+/// @brief This macro is `#if`-usable. Its value is
+///        `__cpp_lib_source_location`, or `0` when
+///        `__cpp_lib_source_location` is not defined.
+#ifdef __cpp_lib_source_location
+#    define BRIDGE_RIVETS_FEATURES_LIB_SOURCE_LOCATION __cpp_lib_source_location
+#else
+#    define BRIDGE_RIVETS_FEATURES_LIB_SOURCE_LOCATION 0
+#endif
+
 namespace bridge::rivets::features {
 
 /// @brief This value is `__cpp_lib_optional`, or `0` when
@@ -153,5 +163,9 @@ inline constexpr long lib_jthread = BRIDGE_RIVETS_FEATURES_LIB_JTHREAD;
 /// @brief This value is `__cpp_lib_stop_token`, or `0` when
 ///        `__cpp_lib_stop_token` is not defined.
 inline constexpr long lib_stop_token = BRIDGE_RIVETS_FEATURES_LIB_STOP_TOKEN;
+
+/// @brief This value is `__cpp_lib_source_location`, or `0` when
+///        `__cpp_lib_source_location` is not defined.
+inline constexpr long lib_source_location = BRIDGE_RIVETS_FEATURES_LIB_SOURCE_LOCATION;
 
 } // namespace bridge::rivets::features
