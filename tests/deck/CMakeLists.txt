@@ -1,6 +1,6 @@
 add_executable(bridge_deck_tests cpp17/version_test.cpp cpp17/optional_test.cpp cpp17/expected_test.cpp
                                   cpp17/format_test.cpp cpp17/print_test.cpp cpp17/format_differential_test.cpp
-                                  cpp17/span_test.cpp cpp17/jthread_test.cpp)
+                                  cpp17/span_test.cpp cpp17/jthread_test.cpp cpp17/source_location_test.cpp)
 target_link_libraries(bridge_deck_tests PRIVATE bridge::deck Catch2::Catch2WithMain)
 catch_discover_tests(bridge_deck_tests)
 
@@ -67,3 +67,16 @@ add_executable(bridge_deck_jthread_cpp20_tests cpp17/jthread_test.cpp cpp17/jthr
 target_link_libraries(bridge_deck_jthread_cpp20_tests PRIVATE bridge::deck Catch2::Catch2WithMain)
 target_compile_features(bridge_deck_jthread_cpp20_tests PRIVATE cxx_std_20)
 catch_discover_tests(bridge_deck_jthread_cpp20_tests)
+
+# Same reasoning as bridge_deck_span_cpp20_tests, for source_location's
+# own passthrough path -- crosses its real threshold at C++20, gated on
+# BRIDGE_DECK_SOURCE_LOCATION_PASSTHROUGH, a bare Feature Test check
+# (docs/adr/0019). Includes the differential test comparing
+# bridge::truss::source_location against real std::source_location
+# directly, including the disclosed column() divergence on toolchains
+# without a public column-number builtin.
+add_executable(bridge_deck_source_location_cpp20_tests cpp17/source_location_test.cpp
+                                                        cpp17/source_location_differential_test.cpp)
+target_link_libraries(bridge_deck_source_location_cpp20_tests PRIVATE bridge::deck Catch2::Catch2WithMain)
+target_compile_features(bridge_deck_source_location_cpp20_tests PRIVATE cxx_std_20)
+catch_discover_tests(bridge_deck_source_location_cpp20_tests)
