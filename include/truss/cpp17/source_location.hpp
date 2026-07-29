@@ -30,7 +30,18 @@
 #pragma once
 
 #include <cstdint>
-#include <rivets/clang.hpp>
+
+// #ifndef BRIDGE_DOXYGEN, not a direct #include: Doxygen already
+// documents rivets/clang.hpp via its own INPUT scan, and a second,
+// indirect reference to a header that itself invokes
+// BRIDGE_RIVETS_DEFINE_DETECTOR silently corrupts Doxygen's macro
+// expansion for *unrelated* Named Detectors elsewhere (see Doxyfile.in's
+// PREDEFINED comment; the same fix deck/cpp17/stop_token.hpp uses for
+// rivets/libstdcxx.hpp). The real compiler always needs this include;
+// Doxygen never defines BRIDGE_DOXYGEN, so it's unaffected either way.
+#ifndef BRIDGE_DOXYGEN
+#    include <rivets/clang.hpp>
+#endif
 
 namespace bridge::detail::truss::cpp17::source_location {
 

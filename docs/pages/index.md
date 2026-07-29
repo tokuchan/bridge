@@ -46,6 +46,7 @@ not necessarily one page per header:
 - \ref page_format_print "Format Print"
 - \ref page_jthread "Jthread"
 - \ref page_optional "Optional"
+- \ref page_source_location "Source Location"
 - \ref page_span "Span"
 - \ref page_version "Version"
 <!-- BRIDGE-DOCS:END -->

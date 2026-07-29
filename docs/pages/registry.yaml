@@ -97,6 +97,21 @@ facilities:
       - include/truss/cpp17/span.hpp
       - include/deck/cpp17/span.hpp
 
+  - name: source_location
+    page: source_location.md
+    cppreference: https://en.cppreference.com/w/cpp/utility/source_location
+    header: "<source_location>"
+    headers:
+      - include/truss/cpp17/source_location.hpp
+      - include/deck/cpp17/source_location.hpp
+    example_headers:
+      - include/rivets/features.hpp
+      - include/rivets/detail/detector.hpp
+      - include/rivets/clang.hpp
+      - include/rivets/diagnostics.hpp
+      - include/truss/cpp17/source_location.hpp
+      - include/deck/cpp17/source_location.hpp
+
   - name: jthread
     page: jthread.md
     cppreference: https://en.cppreference.com/w/cpp/thread/jthread
