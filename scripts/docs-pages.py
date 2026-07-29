@@ -68,7 +68,20 @@ TIERED_NAMESPACE_RE = re.compile(r"^bridge::detail::(truss|deck)::cpp17::\w+(::e
 def load_registry():
     with open(REGISTRY_PATH) as f:
         data = yaml.safe_load(f)
-    return data["facilities"]
+    return data["facilities"], data["groups"]
+
+
+def check_groups(facilities, groups):
+    """Returns (unknown_group_refs, unused_group_ids). The first is
+    every facility name whose `group:` doesn't match a declared group
+    id; the second is every declared group id no facility actually
+    uses. Both empty means the registry's `groups`/`group:` data is
+    self-consistent (docs/adr/0020-cppreference-mirrored-facility-groups.md)."""
+    group_ids = {g["id"] for g in groups}
+    unknown_group_refs = [fac["name"] for fac in facilities if fac.get("group") not in group_ids]
+    used_group_ids = {fac.get("group") for fac in facilities}
+    unused_group_ids = [g["id"] for g in groups if g["id"] not in used_group_ids]
+    return unknown_group_refs, unused_group_ids
 
 
 def all_headers():
@@ -484,7 +497,44 @@ def regenerate_index_block(content, facilities):
     return replace_block(content, "facilities", render_facility_index_block(facilities), "index.md")
 
 
-def process(facilities, write):
+def render_facility_groups_block(facilities, groups):
+    """Builds the cppreference-mirrored top-level hierarchy
+    (docs/adr/0020-cppreference-mirrored-facility-groups.md): one
+    heading per registry-declared group, in registry order. A group
+    with an `overview_page` \\subpages that hand-written page instead
+    of every member facility directly -- required for `rivets`, whose
+    overview page (rivets.md) is already the sole \\subpage parent of
+    its own three facilities; a second \\subpage reference to any of
+    them here would be the exact two-parent crash ADR-0014 already hit
+    once. A group with no `overview_page` \\subpages its member
+    facilities directly, alphabetically (matching
+    render_facility_index_block's own ordering, for the same
+    determinism reason)."""
+    by_group = {}
+    for fac in facilities:
+        by_group.setdefault(fac["group"], []).append(fac)
+
+    lines = []
+    for group in groups:
+        lines.append(f"## {group['name']}")
+        lines.append("")
+        overview_page = group.get("overview_page")
+        if overview_page:
+            page_id = "page_" + Path(overview_page).stem.replace("-", "_")
+            lines.append(f"\\subpage {page_id}")
+        else:
+            for fac in sorted(by_group.get(group["id"], []), key=lambda f: f["name"]):
+                page_id = "page_" + fac["name"].replace("-", "_")
+                lines.append(f"- \\subpage {page_id}")
+        lines.append("")
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def regenerate_groups_block(content, facilities, groups):
+    return replace_block(content, "groups", render_facility_groups_block(facilities, groups), "index.md")
+
+
+def process(facilities, groups, write):
     """Returns a list of (page_path, old_content_or_None, new_content)
     for every facility, writing to disk if `write` is True."""
     results = []
@@ -503,13 +553,15 @@ def process(facilities, write):
             page_path.write_text(new_content)
 
     # docs/pages/index.md isn't a facility itself (docs/adr/0014) --
-    # it's the hand-written mainpage -- but it carries one generated
-    # block of its own: a bullet list `\subpage`-linking every
-    # registered facility, kept in sync the same way.
+    # it's the hand-written mainpage -- but it carries two generated
+    # blocks of its own: the cppreference-mirrored group hierarchy
+    # (docs/adr/0020) and a flat bullet list `\subpage`-linking every
+    # registered facility, both kept in sync the same way.
     index_path = PAGES_DIR / "index.md"
     if index_path.exists():
         old_index = index_path.read_text()
         new_index = regenerate_index_block(old_index, facilities)
+        new_index = regenerate_groups_block(new_index, facilities, groups)
         results.append((index_path, old_index, new_index))
         if write:
             index_path.write_text(new_index)
@@ -522,7 +574,7 @@ def main():
     parser.add_argument("mode", choices=["generate", "check"])
     args = parser.parse_args()
 
-    facilities = load_registry()
+    facilities, groups = load_registry()
 
     missing = check_coverage(facilities)
     if missing:
@@ -531,15 +583,27 @@ def main():
             print(f"  {h}", file=sys.stderr)
         sys.exit(1)
 
+    unknown_group_refs, unused_group_ids = check_groups(facilities, groups)
+    if unknown_group_refs:
+        print("error: facilities reference an unknown group id in docs/pages/registry.yaml:", file=sys.stderr)
+        for n in unknown_group_refs:
+            print(f"  {n}", file=sys.stderr)
+        sys.exit(1)
+    if unused_group_ids:
+        print("error: groups declared in docs/pages/registry.yaml but used by no facility:", file=sys.stderr)
+        for gid in unused_group_ids:
+            print(f"  {gid}", file=sys.stderr)
+        sys.exit(1)
+
     try:
         if args.mode == "generate":
-            process(facilities, write=True)
+            process(facilities, groups, write=True)
             print(f"Regenerated {len(facilities)} facility page(s).")
             return
 
         # check mode: compute what generate *would* write, diff against
         # what's actually committed, fail on any mismatch.
-        results = process(facilities, write=False)
+        results = process(facilities, groups, write=False)
     except (RuntimeError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         sys.exit(1)

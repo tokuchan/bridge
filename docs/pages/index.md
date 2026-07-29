@@ -10,30 +10,38 @@ precise terms this documentation uses -- **Rivets**, **Truss**, **Deck**,
 each one.
 
 This page is organized like cppreference.com: a curated hierarchy below,
-plus a flat, auto-updated index of every documented facility further
-down for quick lookup.
+generated from docs/pages/registry.yaml's own facility groups
+(docs/adr/0020-cppreference-mirrored-facility-groups.md), plus a flat,
+auto-updated index of every documented facility further down for quick
+lookup.
 
-## Rivets -- detection
+<!-- BRIDGE-DOCS:BEGIN groups -->
+## Containers library
 
-\subpage page_rivets "Rivets: the sparse Cartesian product" ties
-together Rivets' three facilities (\ref page_detectors, \ref
-page_feature_tests, \ref page_diagnostics -- linked from there, not
-`\subpage`d a second time here, since a page can only have one
-`\subpage` parent).
+- \subpage page_span
 
-## Truss/Deck -- polyfilled facilities
+## Concurrency support library
 
-Each of these is one conceptual division spanning however many headers
-it actually takes (docs/adr/0014-documentation-site-architecture.md) --
-not necessarily one page per header:
+- \subpage page_jthread
 
-- \subpage page_optional
+## General utilities library
+
 - \subpage page_expected
 - \subpage page_format_print
+- \subpage page_optional
+- \subpage page_source_location
 
-## Everything else
+## Rivets detection library
+
+\subpage page_rivets
+
+## Bridge metadata library
 
 - \subpage page_version
+<!-- BRIDGE-DOCS:END -->
+
+## See also
+
 - \subpage page_ste_glossary
 
 ## Full facility index

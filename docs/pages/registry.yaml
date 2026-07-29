@@ -33,9 +33,40 @@
 # standalone, and encodes it as a Compiler Explorer "Try it" link --
 # failing `./bridge docs` loudly if the flattened form doesn't compile
 # and run cleanly.
+#
+# `groups` declares the top-level categories docs/pages/index.md's
+# mainpage hierarchy is generated from (docs/adr/0020-cppreference-
+# mirrored-facility-groups.md). Each facility's own `group:` field below
+# must reference one of these ids -- scripts/docs-pages.py fails
+# `./bridge docs` loudly on an unknown or unused group id, the same
+# severity an unassigned header already gets. `name` mirrors a real
+# cppreference.com top-level category name where one exists
+# ("Containers library", "Concurrency support library", "General
+# utilities library"); a group with no real cppreference equivalent
+# still gets an "X library"-styled name (deliberately, per ADR-0020),
+# not bridge's bare internal terminology. `overview_page` is optional:
+# when set, the generated hierarchy `\subpage`s that hand-written page
+# under the group's heading instead of `\subpage`ing every member
+# facility directly -- required for `rivets`, since `rivets.md` is
+# already the sole `\subpage` parent of its three facilities, and a
+# second `\subpage` reference from here would be the exact two-parent
+# crash ADR-0014 already hit once.
+groups:
+  - id: containers
+    name: Containers library
+  - id: concurrency
+    name: Concurrency support library
+  - id: utility
+    name: General utilities library
+  - id: rivets
+    name: Rivets detection library
+    overview_page: rivets.md
+  - id: bridge-metadata
+    name: Bridge metadata library
 
 facilities:
   - name: optional
+    group: utility
     page: optional.md
     cppreference: https://en.cppreference.com/w/cpp/utility/optional
     header: "<optional>"
@@ -48,6 +79,7 @@ facilities:
       - include/deck/cpp17/optional.hpp
 
   - name: expected
+    group: utility
     page: expected.md
     cppreference: https://en.cppreference.com/w/cpp/utility/expected
     header: "<expected>"
@@ -61,6 +93,12 @@ facilities:
       - include/deck/cpp17/expected.hpp
 
   - name: format-print
+    # utility, not io: this facility bundles format (real cppreference
+    # category: Utility library) and print/println (real category:
+    # Input/output library) into one bridge page. A disclosed
+    # compromise, matching this same facility's existing single-URL
+    # `cppreference` simplification below (ADR-0020).
+    group: utility
     page: format-print.md
     # print/println have their own separate cppreference page
     # (https://en.cppreference.com/w/cpp/io/print) -- format's page is
@@ -85,6 +123,7 @@ facilities:
       - include/deck/cpp17/print.hpp
 
   - name: span
+    group: containers
     page: span.md
     cppreference: https://en.cppreference.com/w/cpp/container/span
     header: "<span>"
@@ -98,6 +137,7 @@ facilities:
       - include/deck/cpp17/span.hpp
 
   - name: source_location
+    group: utility
     page: source_location.md
     cppreference: https://en.cppreference.com/w/cpp/utility/source_location
     header: "<source_location>"
@@ -113,6 +153,7 @@ facilities:
       - include/deck/cpp17/source_location.hpp
 
   - name: jthread
+    group: concurrency
     page: jthread.md
     cppreference: https://en.cppreference.com/w/cpp/thread/jthread
     # stop_token/stop_source's own real header is <stop_token>, not
@@ -135,6 +176,7 @@ facilities:
       - include/deck/cpp17/jthread.hpp
 
   - name: detectors
+    group: rivets
     page: detectors.md
     cppreference: null
     header: null
@@ -153,6 +195,13 @@ facilities:
       - include/rivets/gcc.hpp
 
   - name: feature-tests
+    # rivets, not utility: this facility has a real cppreference
+    # mapping (cpp/feature_test, under Utility library's own "Language
+    # support" subcategory) on its own, but stays grouped with
+    # detectors/diagnostics as one Rivets unit rather than splitting
+    # rivets.md's "sparse Cartesian product" narrative across two
+    # top-level groups (ADR-0020).
+    group: rivets
     page: feature-tests.md
     cppreference: https://en.cppreference.com/w/cpp/feature_test
     # <version> is the real C++20 header exposing every __cpp_lib_*
@@ -165,6 +214,7 @@ facilities:
       - include/rivets/features.hpp
 
   - name: diagnostics
+    group: rivets
     page: diagnostics.md
     cppreference: null
     header: null
@@ -174,6 +224,7 @@ facilities:
       - include/rivets/diagnostics.hpp
 
   - name: version
+    group: bridge-metadata
     page: version.md
     cppreference: null
     header: null
