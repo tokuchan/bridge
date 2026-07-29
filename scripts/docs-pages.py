@@ -438,7 +438,7 @@ BLOCK_RENDERERS = {
 
 def scaffold_content(facility):
     page_id = "page_" + facility["name"].replace("-", "_")
-    title = facility["name"].replace("-", " ").title()
+    title = facility["name"].replace("-", " ").replace("_", " ").title()
     parts = [f"\\page {page_id} {title}\n"]
     for tag in ("header-link", "headers", "symbols"):
         parts.append(f"{BLOCK_BEGIN.format(tag=tag)}\n{BLOCK_END}\n")
@@ -474,7 +474,7 @@ def render_facility_index_block(facilities):
     # prose around it establishes that via \subpage instead.
     lines = []
     for fac in sorted(facilities, key=lambda f: f["name"]):
-        title = fac["name"].replace("-", " ").title()
+        title = fac["name"].replace("-", " ").replace("_", " ").title()
         page_id = "page_" + fac["name"].replace("-", "_")
         lines.append(f"- \\ref {page_id} \"{title}\"")
     return "\n".join(lines) + "\n"
